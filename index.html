@@ -704,6 +704,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 let adminSessionGranted=false;
 let adminSetupPendingEntry=false;
@@ -2361,6 +2362,1388 @@ document.getElementById('loginName').addEventListener('keydown',e=>{if(e.key==='
 // On load: check for remembered user
 initLoginScreen();
 </script>
-<!-- Teste de atualização automática pelo GitHub -->
+<script>
+(function(){
+  document.querySelectorAll('#loginScreen button, #pwdChangeScreen button').forEach(function(btn){btn.disabled=true;});
+  var card=document.querySelector('#loginScreen .login-card');
+  if(card){
+    var msg=document.createElement('p');
+    msg.id='supabasePreflight';
+    msg.style.cssText='font-size:11px;color:var(--muted);text-align:center;margin-top:10px';
+    msg.textContent='Conectando ao banco de dados...';
+    card.appendChild(msg);
+  }
+  setTimeout(function(){
+    if(!window.__FROTA_SUPABASE_ADAPTER_LOADED){
+      var el=document.getElementById('supabasePreflight');
+      if(el){el.textContent='Não foi possível carregar a conexão com o banco. Atualize a página ou verifique sua internet.';el.style.color='#DC2626';}
+    }
+  },5000);
+})();
+</script>
+
+<script>
+/* ============================================================
+   SUPABASE ADAPTER - DISPONIBILIDADE DE FROTA
+   Mantem a interface existente e troca autenticação/dados locais
+   por Supabase Auth + Postgres com RLS.
+   ============================================================ */
+
+const SUPABASE_URL = 'https://tubjquxufgjyhybqvdqs.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_EfRK2GSEhvuXlePy42j3XQ_It5tjTd5';
+const APP_SITE_URL = 'https://disponibilidade-frota-vercel.vercel.app';
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
+
+window.frotaSupabase = sbClient;
+window.__FROTA_SUPABASE_ADAPTER_LOADED = true;
+
+const DEFAULT_CARRIER_ORDER = [...CARRIERS];
+const DEFAULT_VEHICLE_ORDER = [...VEHICLES];
+const DB_CACHE = {
+  users: [],
+  active_fleet: {},
+  fleet_changelog: [],
+  vehicle_incoming: [],
+  frota_week: [],
+  fleet_units: [],
+  carrier_fixed_vehicles: {}
+};
+const DB_CATALOG = {
+  carrierIdByName: new Map(),
+  carrierNameById: new Map(),
+  vehicleIdByName: new Map(),
+  vehicleNameById: new Map(),
+  vehicleMetaByName: new Map(),
+  profileNameById: new Map(),
+  profileById: new Map()
+};
+const RUNTIME_MAPS = {};
+const WEEK_IDENTITY = new Map();
+let passwordRecoveryMode = false;
+let supabaseBooted = false;
+
+function cloneData(value) {
+  if (typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+
+function stableNumericHash(text) {
+  let hash = 2166136261;
+  const str = String(text);
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) || 1;
+}
+
+function resetRuntimeIds() {
+  Object.keys(RUNTIME_MAPS).forEach(k => delete RUNTIME_MAPS[k]);
+  WEEK_IDENTITY.clear();
+}
+
+function runtimeId(kind, sourceId) {
+  if (!RUNTIME_MAPS[kind]) {
+    RUNTIME_MAPS[kind] = { bySource: new Map(), byRuntime: new Map() };
+  }
+  const maps = RUNTIME_MAPS[kind];
+  const source = String(sourceId);
+  if (maps.bySource.has(source)) return maps.bySource.get(source);
+  let candidate = stableNumericHash(`${kind}:${source}`) & 0x7fffffff;
+  if (candidate === 0) candidate = 1;
+  while (maps.byRuntime.has(candidate) && maps.byRuntime.get(candidate) !== source) {
+    candidate = (candidate + 1) & 0x7fffffff;
+    if (candidate === 0) candidate = 1;
+  }
+  maps.bySource.set(source, candidate);
+  maps.byRuntime.set(candidate, source);
+  return candidate;
+}
+
+function sourceId(kind, id) {
+  const maps = RUNTIME_MAPS[kind];
+  return maps ? maps.byRuntime.get(Number(id)) || null : null;
+}
+
+function throwIfError(error) {
+  if (error) {
+    const err = new Error(error.message || 'Erro ao acessar o Supabase.');
+    err.code = error.code;
+    err.details = error.details;
+    err.hint = error.hint;
+    throw err;
+  }
+}
+
+function friendlyError(error) {
+  const raw = String(error?.message || error || '').toLowerCase();
+  if (raw.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+  if (raw.includes('email not confirmed')) return 'Confirme seu e-mail antes de entrar.';
+  if (raw.includes('user already registered')) return 'Este e-mail já possui cadastro.';
+  if (raw.includes('password should be at least')) return 'A senha precisa ter pelo menos 6 caracteres.';
+  if (raw.includes('duplicate key') || raw.includes('unique constraint')) return 'Este registro já existe.';
+  if (raw.includes('row-level security') || raw.includes('permission denied')) return 'Seu usuário não tem permissão para executar esta ação.';
+  if (raw.includes('failed to fetch') || raw.includes('network')) return 'Falha de conexão. Verifique a internet e tente novamente.';
+  return error?.message || 'Não foi possível concluir a operação.';
+}
+
+function authMessage(message, isError = false) {
+  let el = document.getElementById('authStatusMessage');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'authStatusMessage';
+    el.style.cssText = 'font-size:12px;line-height:1.45;margin-top:12px;padding:9px 11px;border-radius:8px;display:none';
+    document.getElementById('loginModeBlock').appendChild(el);
+  }
+  if (!message) {
+    el.style.display = 'none';
+    el.textContent = '';
+    return;
+  }
+  el.style.display = 'block';
+  el.style.background = isError ? '#FEE2E2' : 'var(--accent-l)';
+  el.style.color = isError ? '#B91C1C' : 'var(--accent)';
+  el.textContent = message;
+}
+
+function patchLoginUI() {
+  const loginName = document.getElementById('loginName');
+  const loginField = loginName?.closest('.field');
+  if (loginName && loginField) {
+    loginField.querySelector('label').textContent = 'E-mail';
+    loginName.type = 'email';
+    loginName.placeholder = 'seuemail@empresa.com';
+    loginName.autocomplete = 'email';
+    document.getElementById('errName').textContent = 'Informe um e-mail válido.';
+  }
+  document.getElementById('loginSubtitle').textContent = 'Entre com seu e-mail e senha para continuar.';
+
+  const cadastroBlock = document.getElementById('cadastroModeBlock');
+  const fieldGroup = cadastroBlock?.querySelector('.field-group');
+  if (fieldGroup && !document.getElementById('cadEmail')) {
+    const nameField = document.getElementById('cadName').closest('.field');
+    nameField.insertAdjacentHTML('afterend', `
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="cadEmail" placeholder="seuemail@empresa.com" autocomplete="email">
+        <span class="ferr" id="errCadEmail">Informe um e-mail válido.</span>
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="cadPwd" placeholder="Mínimo de 8 caracteres" autocomplete="new-password">
+        <span class="ferr" id="errCadPwd">A senha deve ter pelo menos 8 caracteres.</span>
+      </div>
+      <div class="field">
+        <label>Confirmar senha</label>
+        <input type="password" id="cadPwd2" placeholder="Repita sua senha" autocomplete="new-password">
+        <span class="ferr" id="errCadPwd2">As senhas não coincidem.</span>
+      </div>`);
+  }
+
+  const loginButton = document.querySelector('#loginModeBlock .btn-login');
+  if (loginButton && !document.getElementById('forgotPwdLink')) {
+    loginButton.insertAdjacentHTML('afterend', `
+      <p id="forgotPwdLink" style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px">
+        <a onclick="requestPasswordReset()" style="color:var(--accent);cursor:pointer;font-weight:600">Esqueci minha senha</a>
+      </p>`);
+  }
+
+  const adminLink = document.querySelector('.admin-link');
+  if (adminLink) {
+    adminLink.innerHTML = 'Gestores entram pelo mesmo formulário usando o e-mail administrativo.';
+  }
+  const localNote = document.querySelector('.login-card > p[style*="font-size:10.5px"]');
+  if (localNote) {
+    localNote.textContent = 'Dados compartilhados com segurança entre computadores por meio do Supabase.';
+  }
+
+  const adminBack = document.querySelector('#adminScreen .top-header .hright .hbtn:last-child');
+  if (adminBack) {
+    adminBack.textContent = 'Sair';
+    adminBack.setAttribute('onclick', 'doLogout()');
+  }
+
+  const userHeaderRight = document.querySelector('#formScreen .top-header .hright');
+  if (userHeaderRight && !document.getElementById('userRefreshBtn')) {
+    const btn = document.createElement('button');
+    btn.className = 'hbtn';
+    btn.id = 'userRefreshBtn';
+    btn.textContent = 'Atualizar';
+    btn.onclick = () => refreshFromSupabase();
+    userHeaderRight.insertBefore(btn, userHeaderRight.lastElementChild);
+  }
+
+  const adminHeaderRight = document.querySelector('#adminScreen .top-header .hright');
+  if (adminHeaderRight && !document.getElementById('adminRefreshBtn')) {
+    const btn = document.createElement('button');
+    btn.className = 'hbtn';
+    btn.id = 'adminRefreshBtn';
+    btn.textContent = '↻ Atualizar';
+    btn.onclick = () => refreshFromSupabase();
+    adminHeaderRight.insertBefore(btn, adminHeaderRight.firstElementChild);
+  }
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .supabase-connection{font-size:10.5px;color:var(--green);font-weight:600;margin-top:3px}
+    .btn[disabled],.btn-login[disabled],.hbtn[disabled]{opacity:.55;cursor:not-allowed}
+  `;
+  document.head.appendChild(style);
+}
+
+switchLoginMode = function(mode) {
+  document.getElementById('loginModeBlock').style.display = mode === 'login' ? 'block' : 'none';
+  document.getElementById('cadastroModeBlock').style.display = mode === 'cadastro' ? 'block' : 'none';
+  document.getElementById('loginTitle').textContent = mode === 'cadastro' ? 'Criar cadastro' : 'Disponibilidade de Frota';
+  document.getElementById('loginSubtitle').textContent = mode === 'cadastro'
+    ? 'Informe seus dados. O acesso será liberado após a aprovação do gestor.'
+    : 'Entre com seu e-mail e senha para continuar.';
+  authMessage('');
+};
+
+function setAuthBusy(busy) {
+  document.querySelectorAll('#loginScreen button, #pwdChangeScreen button').forEach(btn => {
+    btn.disabled = busy;
+  });
+}
+
+async function fetchAllRows(table, columns = '*', orderColumn = null, ascending = true) {
+  const pageSize = 1000;
+  let from = 0;
+  const rows = [];
+  while (true) {
+    let query = sbClient.from(table).select(columns).range(from, from + pageSize - 1);
+    if (orderColumn) query = query.order(orderColumn, { ascending });
+    const { data, error } = await query;
+    throwIfError(error);
+    rows.push(...(data || []));
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+  return rows;
+}
+
+function orderedNames(fetchedNames, preferredOrder) {
+  const set = new Set(fetchedNames);
+  return [
+    ...preferredOrder.filter(name => set.has(name)),
+    ...fetchedNames.filter(name => !preferredOrder.includes(name)).sort((a, b) => a.localeCompare(b, 'pt-BR'))
+  ];
+}
+
+async function loadCatalogs() {
+  const [carriers, vehicles] = await Promise.all([
+    fetchAllRows('carriers', 'id,name,active,created_at', 'created_at', true),
+    fetchAllRows('vehicles', 'id,name,is_fixed,is_restricted,active,created_at', 'created_at', true)
+  ]);
+
+  DB_CATALOG.carrierIdByName.clear();
+  DB_CATALOG.carrierNameById.clear();
+  carriers.filter(c => c.active).forEach(c => {
+    DB_CATALOG.carrierIdByName.set(c.name, c.id);
+    DB_CATALOG.carrierNameById.set(c.id, c.name);
+  });
+
+  DB_CATALOG.vehicleIdByName.clear();
+  DB_CATALOG.vehicleNameById.clear();
+  DB_CATALOG.vehicleMetaByName.clear();
+  vehicles.filter(v => v.active).forEach(v => {
+    DB_CATALOG.vehicleIdByName.set(v.name, v.id);
+    DB_CATALOG.vehicleNameById.set(v.id, v.name);
+    DB_CATALOG.vehicleMetaByName.set(v.name, v);
+  });
+
+  const carrierNames = orderedNames([...DB_CATALOG.carrierIdByName.keys()], DEFAULT_CARRIER_ORDER);
+  const vehicleNames = orderedNames([...DB_CATALOG.vehicleIdByName.keys()], DEFAULT_VEHICLE_ORDER);
+  CARRIERS.splice(0, CARRIERS.length, ...carrierNames);
+  VEHICLES.splice(0, VEHICLES.length, ...vehicleNames);
+  FIXED_VEHICLES.splice(0, FIXED_VEHICLES.length, ...vehicleNames.filter(v => DB_CATALOG.vehicleMetaByName.get(v)?.is_fixed));
+  RESTRICTED_VEHICLES.splice(0, RESTRICTED_VEHICLES.length, ...vehicleNames.filter(v => DB_CATALOG.vehicleMetaByName.get(v)?.is_restricted));
+
+  populateCarrierSelect = function() {
+    const sel = document.getElementById('cadCarrier');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Selecione sua transportadora...</option>';
+    CARRIERS.forEach(c => {
+      const option = document.createElement('option');
+      option.value = c;
+      option.textContent = c;
+      sel.appendChild(option);
+    });
+  };
+  populateCarrierSelect();
+}
+
+function carrierId(name) {
+  const id = DB_CATALOG.carrierIdByName.get(name);
+  if (!id) throw new Error(`Transportadora não encontrada: ${name}`);
+  return id;
+}
+
+function vehicleId(name) {
+  const id = DB_CATALOG.vehicleIdByName.get(name);
+  if (!id) throw new Error(`Modelo de veículo não encontrado: ${name}`);
+  return id;
+}
+
+async function getProfileWithRetry(userId) {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const { data, error } = await sbClient
+      .from('profiles')
+      .select('id,email,full_name,carrier_id,role,status,created_at,updated_at')
+      .eq('id', userId)
+      .maybeSingle();
+    throwIfError(error);
+    if (data) return data;
+    await new Promise(resolve => setTimeout(resolve, 350));
+  }
+  return null;
+}
+
+async function loadAppData() {
+  resetRuntimeIds();
+  const [profiles, accessRows, activeRows, logRows, incomingRows, weekRows, unitRows] = await Promise.all([
+    fetchAllRows('profiles', 'id,email,full_name,carrier_id,role,status,created_at,updated_at', 'created_at', true),
+    fetchAllRows('carrier_vehicle_access', 'id,carrier_id,vehicle_id,enabled,created_at,updated_at'),
+    fetchAllRows('active_fleet', 'id,carrier_id,vehicle_id,quantity,updated_by,created_at,updated_at'),
+    fetchAllRows('fleet_changelog', 'id,carrier_id,vehicle_id,before_quantity,after_quantity,note,changed_by,changed_at', 'changed_at', false),
+    fetchAllRows('incoming_vehicles', 'id,carrier_id,vehicle_id,quantity,expected_date,note,status,created_by,entered_by,entered_at,created_at,updated_at', 'created_at', false),
+    fetchAllRows('week_entries', 'id,carrier_id,vehicle_id,operation_date,cycle,quantity,updated_by,created_at,updated_at', 'operation_date', false),
+    fetchAllRows('fleet_units', 'id,carrier_id,vehicle_id,plate,status,note,updated_by,created_at,updated_at', 'created_at', false)
+  ]);
+
+  DB_CATALOG.profileNameById.clear();
+  DB_CATALOG.profileById.clear();
+  profiles.forEach(p => {
+    DB_CATALOG.profileNameById.set(p.id, p.full_name || p.email || 'Usuário');
+    DB_CATALOG.profileById.set(p.id, p);
+  });
+
+  DB_CACHE.users = profiles.map(p => ({
+    id: p.id,
+    email: p.email || '',
+    name: p.full_name || p.email || 'Usuário',
+    carrier: DB_CATALOG.carrierNameById.get(p.carrier_id) || '',
+    carrierId: p.carrier_id,
+    role: p.role,
+    status: p.status,
+    approved: p.status === 'approved',
+    blocked: p.status === 'blocked',
+    mustChange: false,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at
+  }));
+
+  const fixedMap = {};
+  accessRows.filter(r => r.enabled).forEach(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    if (!c || !v) return;
+    if (!fixedMap[c]) fixedMap[c] = [];
+    if (!fixedMap[c].includes(v)) fixedMap[c].push(v);
+  });
+  DB_CACHE.carrier_fixed_vehicles = fixedMap;
+
+  const activeFleet = {};
+  activeRows.forEach(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    if (!c || !v) return;
+    if (!activeFleet[c]) activeFleet[c] = {};
+    activeFleet[c][v] = Number(r.quantity) || 0;
+  });
+  DB_CACHE.active_fleet = activeFleet;
+
+  DB_CACHE.fleet_changelog = logRows.map(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    return {
+      id: runtimeId('changelog', r.id),
+      dbId: r.id,
+      name: DB_CATALOG.profileNameById.get(r.changed_by) || 'Usuário',
+      changes: c && v ? [{
+        carrier: c,
+        vehicle: v,
+        before: Number(r.before_quantity) || 0,
+        after: Number(r.after_quantity) || 0
+      }] : [],
+      note: r.note || '',
+      at: r.changed_at
+    };
+  }).filter(r => r.changes.length);
+
+  const incomingStatus = { pending: 'pendente', entered: 'entrou', cancelled: 'cancelado' };
+  DB_CACHE.vehicle_incoming = incomingRows.map(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    if (!c || !v) return null;
+    return {
+      id: runtimeId('incoming', r.id),
+      dbId: r.id,
+      carrier: c,
+      vehicle: v,
+      quantity: Number(r.quantity) || 0,
+      expectedDate: r.expected_date,
+      note: r.note || '',
+      status: incomingStatus[r.status] || r.status,
+      createdBy: DB_CATALOG.profileNameById.get(r.created_by) || 'Usuário',
+      createdAt: r.created_at,
+      enteredAt: r.entered_at || null
+    };
+  }).filter(Boolean);
+
+  const fleetStatus = { available: 'disponivel', broken: 'quebrado', maintenance: 'manutencao' };
+  DB_CACHE.fleet_units = unitRows.map(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    if (!c || !v) return null;
+    return {
+      id: runtimeId('fleet_unit', r.id),
+      dbId: r.id,
+      carrier: c,
+      vehicle: v,
+      plate: r.plate,
+      status: fleetStatus[r.status] || 'disponivel',
+      note: r.note || '',
+      updatedAt: r.updated_at,
+      updatedBy: DB_CATALOG.profileNameById.get(r.updated_by) || 'Usuário'
+    };
+  }).filter(Boolean);
+
+  const weekGroups = new Map();
+  weekRows.forEach(r => {
+    const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
+    if (!c || !v) return;
+    const monday = getMondayOf(new Date(`${r.operation_date}T12:00:00`));
+    const key = `${r.carrier_id}|${monday}`;
+    if (!weekGroups.has(key)) {
+      const rid = runtimeId('week', key);
+      WEEK_IDENTITY.set(rid, { carrierId: r.carrier_id, weekStart: monday });
+      weekGroups.set(key, {
+        id: rid,
+        name: DB_CATALOG.profileNameById.get(r.updated_by) || c,
+        weekStart: monday,
+        cycle: 'all',
+        submittedAt: r.updated_at,
+        data: { [c]: {} }
+      });
+    }
+    const rec = weekGroups.get(key);
+    if (new Date(r.updated_at) > new Date(rec.submittedAt)) {
+      rec.submittedAt = r.updated_at;
+      rec.name = DB_CATALOG.profileNameById.get(r.updated_by) || c;
+    }
+    if (!rec.data[c][v]) rec.data[c][v] = {};
+    if (!rec.data[c][v][r.operation_date]) rec.data[c][v][r.operation_date] = {};
+    rec.data[c][v][r.operation_date][r.cycle] = Number(r.quantity) || 0;
+  });
+  DB_CACHE.frota_week = [...weekGroups.values()].sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+}
+
+// Leitura passa a usar apenas o cache central carregado do Supabase.
+loadUsers = () => cloneData(DB_CACHE.users);
+findUser = name => DB_CACHE.users.find(u => u.name.trim().toLowerCase() === String(name || '').trim().toLowerCase()) || null;
+loadRecords = key => cloneData(DB_CACHE[key] || []);
+loadActiveFleet = () => cloneData(DB_CACHE.active_fleet);
+loadIncoming = () => cloneData(DB_CACHE.vehicle_incoming);
+loadFleetUnits = () => cloneData(DB_CACHE.fleet_units);
+loadCarrierFixedVehicles = () => cloneData(DB_CACHE.carrier_fixed_vehicles);
+
+// Evita qualquer persistência operacional no localStorage. As gravações reais
+// são feitas pelas funções assíncronas sobrescritas abaixo.
+saveUsers = list => { DB_CACHE.users = cloneData(list); return true; };
+saveRecords = (key, data) => { DB_CACHE[key] = cloneData(data); return true; };
+saveActiveFleetData = data => { DB_CACHE.active_fleet = cloneData(data); return true; };
+saveIncoming = list => { DB_CACHE.vehicle_incoming = cloneData(list); return true; };
+saveFleetUnits = list => { DB_CACHE.fleet_units = cloneData(list); return true; };
+saveCarrierFixedVehiclesData = data => { DB_CACHE.carrier_fixed_vehicles = cloneData(data); return true; };
+
+function openUserApplication() {
+  resetRuntimeState();
+  document.getElementById('userAvatar').textContent = ini(currentUser.name);
+  document.getElementById('userLabel').textContent = currentUser.name;
+  document.getElementById('userCarrierLabel').textContent = currentUser.carrier || '';
+  const now = new Date();
+  document.getElementById('headerDate').textContent = now.toLocaleDateString('pt-BR', {
+    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+  });
+  currentWeekStart = getMondayOf(now);
+  activeCarrierFilter = 'all';
+  initStates();
+  buildUI();
+  updateSummary();
+  populateIncomingVehicleSelect();
+  renderIncomingList();
+  buildCarrierFilterBtns();
+  showScreen('formScreen');
+  switchTab('tabAvail');
+}
+
+function openAdminApplication() {
+  resetRuntimeState();
+  compareWeekStart = getMondayOf(new Date());
+  showScreen('adminScreen');
+  switchAdminTab('adTabAvail');
+}
+
+async function startAuthenticatedSession(authUser) {
+  const profile = await getProfileWithRetry(authUser.id);
+  if (!profile) {
+    await sbClient.auth.signOut();
+    throw new Error('O perfil do usuário ainda não foi criado. Tente novamente em alguns segundos.');
+  }
+  if (profile.status === 'pending') {
+    await sbClient.auth.signOut();
+    authMessage('Seu cadastro foi criado e está aguardando aprovação do gestor.', false);
+    showScreen('loginScreen');
+    return;
+  }
+  if (profile.status === 'blocked') {
+    await sbClient.auth.signOut();
+    authMessage('Este cadastro está bloqueado. Procure o gestor responsável.', true);
+    showScreen('loginScreen');
+    return;
+  }
+  if (profile.status !== 'approved') {
+    await sbClient.auth.signOut();
+    authMessage('Seu cadastro ainda não está liberado.', true);
+    showScreen('loginScreen');
+    return;
+  }
+
+  const carrierName = profile.carrier_id ? DB_CATALOG.carrierNameById.get(profile.carrier_id) || '' : '';
+  if (profile.role !== 'admin' && !carrierName) {
+    await sbClient.auth.signOut();
+    throw new Error('Seu perfil não possui uma transportadora vinculada. Procure o gestor.');
+  }
+
+  currentUser = {
+    id: authUser.id,
+    email: authUser.email || profile.email || '',
+    name: profile.full_name || authUser.email || 'Usuário',
+    carrier: carrierName,
+    carrierId: profile.carrier_id,
+    role: profile.role,
+    status: profile.status
+  };
+
+  await loadAppData();
+  authMessage('');
+  if (currentUser.role === 'admin') openAdminApplication();
+  else openUserApplication();
+}
+
+doLogin = async function() {
+  const email = document.getElementById('loginName').value.trim().toLowerCase();
+  const password = document.getElementById('loginPwd').value;
+  document.getElementById('errName').classList.remove('show');
+  document.getElementById('errPwd').classList.remove('show');
+  authMessage('');
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    document.getElementById('errName').classList.add('show');
+    return;
+  }
+  if (!password) {
+    document.getElementById('errPwd').textContent = 'Informe sua senha.';
+    document.getElementById('errPwd').classList.add('show');
+    return;
+  }
+  setAuthBusy(true);
+  try {
+    const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+    throwIfError(error);
+    document.getElementById('loginPwd').value = '';
+    await startAuthenticatedSession(data.user);
+  } catch (error) {
+    document.getElementById('errPwd').textContent = friendlyError(error);
+    document.getElementById('errPwd').classList.add('show');
+  } finally {
+    setAuthBusy(false);
+  }
+};
+
+doCadastro = async function() {
+  const name = document.getElementById('cadName').value.trim();
+  const email = document.getElementById('cadEmail').value.trim().toLowerCase();
+  const carrier = document.getElementById('cadCarrier').value;
+  const password = document.getElementById('cadPwd').value;
+  const password2 = document.getElementById('cadPwd2').value;
+  ['errCadName', 'errCadEmail', 'errCadCarrier', 'errCadPwd', 'errCadPwd2'].forEach(id => {
+    document.getElementById(id)?.classList.remove('show');
+  });
+  let valid = true;
+  if (name.length < 3) { document.getElementById('errCadName').classList.add('show'); valid = false; }
+  if (!/^\S+@\S+\.\S+$/.test(email)) { document.getElementById('errCadEmail').classList.add('show'); valid = false; }
+  if (!carrier) { document.getElementById('errCadCarrier').classList.add('show'); valid = false; }
+  if (password.length < 8) { document.getElementById('errCadPwd').classList.add('show'); valid = false; }
+  if (password !== password2) { document.getElementById('errCadPwd2').classList.add('show'); valid = false; }
+  if (!valid) return;
+
+  setAuthBusy(true);
+  try {
+    const { data, error } = await sbClient.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: APP_SITE_URL,
+        data: {
+          full_name: name,
+          carrier_id: carrierId(carrier)
+        }
+      }
+    });
+    throwIfError(error);
+    if (data.session) await sbClient.auth.signOut();
+    document.getElementById('cadName').value = '';
+    document.getElementById('cadEmail').value = '';
+    document.getElementById('cadCarrier').value = '';
+    document.getElementById('cadPwd').value = '';
+    document.getElementById('cadPwd2').value = '';
+    switchLoginMode('login');
+    document.getElementById('loginName').value = email;
+    authMessage(data.session
+      ? 'Cadastro criado. Agora aguarde a aprovação do gestor.'
+      : 'Cadastro criado. Confirme o e-mail recebido e aguarde a aprovação do gestor.', false);
+  } catch (error) {
+    authMessage(friendlyError(error), true);
+  } finally {
+    setAuthBusy(false);
+  }
+};
+
+requestPasswordReset = async function() {
+  const email = document.getElementById('loginName').value.trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    authMessage('Informe seu e-mail no campo acima para receber o link de redefinição.', true);
+    return;
+  }
+  setAuthBusy(true);
+  try {
+    const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: APP_SITE_URL });
+    throwIfError(error);
+    authMessage('Enviamos um link de redefinição para o seu e-mail.', false);
+  } catch (error) {
+    authMessage(friendlyError(error), true);
+  } finally {
+    setAuthBusy(false);
+  }
+};
+
+doChangePassword = async function() {
+  const p1 = document.getElementById('newPwd1').value;
+  const p2 = document.getElementById('newPwd2').value;
+  document.getElementById('errNewPwd1').classList.remove('show');
+  document.getElementById('errNewPwd2').classList.remove('show');
+  if (p1.length < 8) {
+    document.getElementById('errNewPwd1').textContent = 'A senha deve ter pelo menos 8 caracteres.';
+    document.getElementById('errNewPwd1').classList.add('show');
+    return;
+  }
+  if (p1 !== p2) {
+    document.getElementById('errNewPwd2').classList.add('show');
+    return;
+  }
+  try {
+    const { error } = await sbClient.auth.updateUser({ password: p1 });
+    throwIfError(error);
+    passwordRecoveryMode = false;
+    document.getElementById('newPwd1').value = '';
+    document.getElementById('newPwd2').value = '';
+    await sbClient.auth.signOut();
+    showScreen('loginScreen');
+    authMessage('Senha atualizada. Entre novamente com a nova senha.', false);
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+doLogout = async function() {
+  try { await sbClient.auth.signOut(); } catch (error) { console.warn(error); }
+  currentUser = null;
+  resetRuntimeState();
+  document.getElementById('loginPwd').value = '';
+  showScreen('loginScreen');
+  authMessage('Sessão encerrada.', false);
+};
+
+openAdminModal = function() {
+  switchLoginMode('login');
+  showScreen('loginScreen');
+  authMessage('Use o e-mail e a senha do perfil administrador.', false);
+  document.getElementById('loginName').focus();
+};
+
+async function refreshFromSupabase() {
+  if (!currentUser) return;
+  try {
+    showToast('↻ Atualizando dados...');
+    await loadCatalogs();
+    await loadAppData();
+    if (document.getElementById('formScreen').classList.contains('active')) {
+      resetRuntimeState();
+      initStates();
+      buildUI();
+      updateSummary();
+      populateIncomingVehicleSelect();
+      renderIncomingList();
+      buildCarrierFilterBtns();
+      const activeTab = document.querySelector('#formScreen .tab-panel.active')?.id || 'tabAvail';
+      if (activeTab === 'tabWeek') renderWeekUI();
+      if (activeTab === 'tabFixed') renderFixedFleetTab();
+    } else if (document.getElementById('adminScreen').classList.contains('active')) {
+      const activeTab = document.querySelector('#adminScreen .tab-panel.active')?.id || 'adTabAvail';
+      switchAdminTab(activeTab);
+    }
+    showToast('✓ Dados atualizados');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+}
+
+confirmActiveFleetSave = async function() {
+  if (!pendingActiveFleetChanges?.length) return;
+  const changes = cloneData(pendingActiveFleetChanges);
+  const note = document.getElementById('activeFleetNoteInput').value.trim();
+  if (document.getElementById('activeFleetNoteInput').dataset.required === '1' && !note) {
+    document.getElementById('activeFleetNoteErr').classList.add('show');
+    return;
+  }
+  try {
+    const payload = changes.map(ch => ({
+      carrier_id: carrierId(ch.carrier),
+      vehicle_id: vehicleId(ch.vehicle),
+      after_quantity: ch.after
+    }));
+    const { error } = await sbClient.rpc('apply_active_fleet_changes', {
+      p_changes: payload,
+      p_note: note || null
+    });
+    throwIfError(error);
+    closeActiveFleetSaveModal();
+    await loadAppData();
+    resetRuntimeState();
+    initStates();
+    buildUI();
+    updateSummary();
+    showToast('✓ Cadastro atualizado no Supabase!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+saveWeekForm = async function() {
+  if (!requireLogin()) return;
+  const days = getWeekDays(currentWeekStart);
+  try {
+    for (const carrier of activeCarriers()) {
+      const entries = [];
+      visibleVehiclesFor(carrier).forEach(vehicle => {
+        days.forEach(day => {
+          CYCLES.forEach(cycle => {
+            const quantity = getW(carrier, vehicle, day, cycle);
+            if (quantity > 0) {
+              entries.push({
+                vehicle_id: vehicleId(vehicle),
+                operation_date: day,
+                cycle,
+                quantity
+              });
+            }
+          });
+        });
+      });
+      const { error } = await sbClient.rpc('replace_week_snapshot', {
+        p_carrier_id: carrierId(carrier),
+        p_week_start: currentWeekStart,
+        p_entries: entries
+      });
+      throwIfError(error);
+    }
+    await loadAppData();
+    Object.keys(wstate).forEach(k => delete wstate[k]);
+    loadedWeeks = new Set();
+    renderWeekUI();
+    showToast('✓ Semana salva no Supabase!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+addIncomingVehicle = async function() {
+  if (!requireLogin()) return;
+  const vehicle = document.getElementById('incVehicle').value;
+  const quantity = parseInt(document.getElementById('incQty').value) || 0;
+  const expectedDate = document.getElementById('incDate').value;
+  const note = document.getElementById('incNote').value.trim();
+  if (!vehicle || quantity < 1 || !expectedDate) {
+    showToast('⚠ Selecione o modelo, a quantidade e a data prevista');
+    return;
+  }
+  try {
+    const { error } = await sbClient.from('incoming_vehicles').insert({
+      carrier_id: currentUser.carrierId,
+      vehicle_id: vehicleId(vehicle),
+      quantity,
+      expected_date: expectedDate,
+      note: note || null,
+      status: 'pending',
+      created_by: currentUser.id
+    });
+    throwIfError(error);
+    document.getElementById('incQty').value = 1;
+    document.getElementById('incDate').value = '';
+    document.getElementById('incNote').value = '';
+    document.getElementById('incVehicle').value = '';
+    await loadAppData();
+    renderIncomingList();
+    showToast('✓ Projeção adicionada!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+markIncomingEntered = function(id) {
+  askConfirm('Confirmar que este veículo já entrou? A quantidade será somada à frota ativa.', async () => {
+    const item = DB_CACHE.vehicle_incoming.find(x => x.id === Number(id));
+    if (!item) return;
+    try {
+      const { error } = await sbClient.rpc('mark_incoming_entered', {
+        p_incoming_id: item.dbId || sourceId('incoming', id)
+      });
+      throwIfError(error);
+      await loadAppData();
+      if (currentUser.role === 'admin') renderAdminAvail();
+      else {
+        resetRuntimeState();
+        initStates();
+        buildUI();
+        updateSummary();
+        renderIncomingList();
+      }
+      showToast('✓ Veículo incorporado à frota ativa!');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+deleteIncoming = function(id) {
+  askConfirm('Excluir esta projeção de veículo?', async () => {
+    try {
+      const dbId = sourceId('incoming', id);
+      const { error } = await sbClient.from('incoming_vehicles').delete().eq('id', dbId);
+      throwIfError(error);
+      await loadAppData();
+      if (currentUser.role === 'admin') renderAdminIncoming();
+      else renderIncomingList();
+      showToast('✓ Removido');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+confirmAddFleetUnit = async function() {
+  const plate = document.getElementById('fixedAddPlate').value.trim().toUpperCase().replace(/\s+/g, '');
+  if (plate.length < 5) {
+    document.getElementById('fixedAddErr').textContent = 'Informe uma placa válida.';
+    document.getElementById('fixedAddErr').classList.add('show');
+    return;
+  }
+  try {
+    const { error } = await sbClient.from('fleet_units').insert({
+      carrier_id: currentUser.carrierId,
+      vehicle_id: vehicleId(pendingFixedVehicle),
+      plate,
+      status: 'available',
+      updated_by: currentUser.id
+    });
+    throwIfError(error);
+    closeFixedAddModal();
+    await loadAppData();
+    renderFixedFleetTab();
+    showToast('✓ Veículo cadastrado!');
+  } catch (error) {
+    document.getElementById('fixedAddErr').textContent = friendlyError(error);
+    document.getElementById('fixedAddErr').classList.add('show');
+  }
+};
+
+async function updateFleetUnitStatus(id, status, note, renderAdmin) {
+  const dbStatus = { disponivel: 'available', quebrado: 'broken', manutencao: 'maintenance' }[status];
+  try {
+    const dbId = sourceId('fleet_unit', id);
+    const { error } = await sbClient.from('fleet_units').update({
+      status: dbStatus,
+      note: note || null,
+      updated_by: currentUser.id
+    }).eq('id', dbId);
+    throwIfError(error);
+    await loadAppData();
+    if (renderAdmin) renderAdminFixedFleet();
+    else renderFixedFleetTab();
+    showToast('✓ Status atualizado');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+}
+
+confirmStatusNote = async function() {
+  if (!pendingStatusChange) return;
+  const { id, status, isAdmin } = pendingStatusChange;
+  const note = document.getElementById('statusNoteInput').value.trim();
+  closeStatusNoteModal();
+  await updateFleetUnitStatus(id, status, note, isAdmin);
+};
+
+setFleetUnitStatus = async function(id, status) {
+  if (status === 'disponivel') await updateFleetUnitStatus(id, status, '', false);
+  else openStatusNoteModal(id, status, false);
+};
+
+adminSetFleetStatus = async function(id, status) {
+  if (status === 'disponivel') await updateFleetUnitStatus(id, status, '', true);
+  else openStatusNoteModal(id, status, true);
+};
+
+function deleteFleetUnitFromDb(id, renderAdmin) {
+  askConfirm('Remover este veículo do cadastro?', async () => {
+    try {
+      const dbId = sourceId('fleet_unit', id);
+      const { error } = await sbClient.from('fleet_units').delete().eq('id', dbId);
+      throwIfError(error);
+      await loadAppData();
+      if (renderAdmin) renderAdminFixedFleet();
+      else renderFixedFleetTab();
+      showToast('✓ Veículo removido');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+}
+
+deleteFleetUnit = function(id) { deleteFleetUnitFromDb(id, false); };
+adminDeleteFleetUnit = function(id) { deleteFleetUnitFromDb(id, true); };
+
+addCarrierFixedVehicle = async function() {
+  const carrier = document.getElementById('fixedMapCarrier').value;
+  const vehicle = document.getElementById('fixedMapVehicle').value;
+  if (!carrier || !vehicle) {
+    showToast('⚠ Selecione a transportadora e o modelo');
+    return;
+  }
+  try {
+    const { error } = await sbClient.from('carrier_vehicle_access').upsert({
+      carrier_id: carrierId(carrier),
+      vehicle_id: vehicleId(vehicle),
+      enabled: true
+    }, { onConflict: 'carrier_id,vehicle_id' });
+    throwIfError(error);
+    document.getElementById('fixedMapCarrier').value = '';
+    document.getElementById('fixedMapVehicle').value = '';
+    await loadAppData();
+    renderAdminFixedFleet();
+    showToast('✓ Vinculado!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+removeCarrierFixedVehicle = function(carrier, vehicle) {
+  const activeQty = DB_CACHE.active_fleet[carrier]?.[vehicle] || 0;
+  const plateQty = DB_CACHE.fleet_units.filter(u => u.carrier === carrier && u.vehicle === vehicle).length;
+  const pendingQty = DB_CACHE.vehicle_incoming.filter(x => x.carrier === carrier && x.vehicle === vehicle && x.status === 'pendente').length;
+  if (activeQty > 0 || plateQty > 0 || pendingQty > 0) {
+    showToast(`⚠ Não é possível remover: ${activeQty} ativo(s), ${plateQty} placa(s), ${pendingQty} projeção(ões)`);
+    return;
+  }
+  askConfirm(`Remover "${vehicle}" da transportadora ${carrier}?`, async () => {
+    try {
+      const { error } = await sbClient.from('carrier_vehicle_access').delete()
+        .eq('carrier_id', carrierId(carrier))
+        .eq('vehicle_id', vehicleId(vehicle));
+      throwIfError(error);
+      await loadAppData();
+      renderAdminFixedFleet();
+      showToast('✓ Removido');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+renderAdminUsers = function() {
+  const q = (document.getElementById('searchUsersInput').value || '').toLowerCase();
+  const users = DB_CACHE.users.filter(u =>
+    u.name.toLowerCase().includes(q) ||
+    u.email.toLowerCase().includes(q) ||
+    (u.carrier || '').toLowerCase().includes(q)
+  );
+  document.getElementById('usersCount').textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
+  const list = document.getElementById('usersList');
+  if (!users.length) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:20px">Nenhum usuário cadastrado.</p>';
+    return;
+  }
+  list.innerHTML = users.map((u, index) => {
+    const statusLabel = u.role === 'admin' ? 'Administrador' : u.status === 'approved' ? 'Ativo' : u.status === 'blocked' ? 'Bloqueado' : 'Aguardando aprovação';
+    const bg = u.role === 'admin' ? 'var(--chp-l)' : u.status === 'approved' ? 'var(--green-l)' : u.status === 'blocked' ? '#FEE2E2' : 'var(--pm1-l)';
+    const color = u.role === 'admin' ? 'var(--chp)' : u.status === 'approved' ? 'var(--green)' : u.status === 'blocked' ? '#DC2626' : 'var(--pm1)';
+    const isSelf = u.id === currentUser.id;
+    return `
+      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <div class="avatar" style="width:34px;height:34px;font-size:12px">${esc(ini(u.name))}</div>
+        <div style="flex:1;min-width:200px">
+          <div style="font-weight:700;font-size:13px">${esc(u.name)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(u.carrier || 'Sem transportadora')}</div>
+        </div>
+        <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${bg};color:${color}">${statusLabel}</span>
+        ${u.role !== 'admin' && u.status !== 'approved' ? `<button class="btn btn-p user-db-action" data-action="approve" data-index="${index}" style="font-size:12px;padding:6px 12px">Aprovar</button>` : ''}
+        ${u.role !== 'admin' ? `<button class="btn btn-s user-db-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Enviar reset</button>` : ''}
+        ${u.role !== 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="block" data-index="${index}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5">${u.status === 'blocked' ? 'Manter bloqueado' : 'Bloquear'}</button>` : ''}
+      </div>`;
+  }).join('');
+  list.querySelectorAll('.user-db-action').forEach(btn => btn.addEventListener('click', () => {
+    const user = users[Number(btn.dataset.index)];
+    if (!user) return;
+    if (btn.dataset.action === 'approve') adminApproveUser(user.id);
+    if (btn.dataset.action === 'reset') adminResetUserPwd(user.id);
+    if (btn.dataset.action === 'block') adminDeleteUser(user.id);
+  }));
+};
+
+adminApproveUser = async function(userId) {
+  const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
+  if (!user) return;
+  try {
+    const { error } = await sbClient.from('profiles').update({
+      status: 'approved'
+    }).eq('id', user.id);
+    throwIfError(error);
+    await loadAppData();
+    renderAdminUsers();
+    showToast('✓ Usuário aprovado!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+adminResetUserPwd = function(userId) {
+  const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
+  if (!user?.email) return;
+  askConfirm(`Enviar um link de redefinição de senha para ${user.email}?`, async () => {
+    try {
+      const { error } = await sbClient.auth.resetPasswordForEmail(user.email, { redirectTo: APP_SITE_URL });
+      throwIfError(error);
+      showToast('✓ Link de redefinição enviado!');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+adminDeleteUser = function(userId) {
+  const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
+  if (!user || user.role === 'admin') return;
+  askConfirm(`Bloquear o acesso de ${user.name}?`, async () => {
+    try {
+      const { error } = await sbClient.from('profiles').update({ status: 'blocked' }).eq('id', user.id);
+      throwIfError(error);
+      await loadAppData();
+      renderAdminUsers();
+      showToast('✓ Usuário bloqueado');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+doAdminChangePassword = async function() {
+  const p1 = document.getElementById('adminNewPwd1').value;
+  const p2 = document.getElementById('adminNewPwd2').value;
+  document.getElementById('errAdminPwd1').classList.remove('show');
+  document.getElementById('errAdminPwd2').classList.remove('show');
+  if (p1.length < 8) {
+    document.getElementById('errAdminPwd1').textContent = 'A senha deve ter pelo menos 8 caracteres.';
+    document.getElementById('errAdminPwd1').classList.add('show');
+    return;
+  }
+  if (p1 !== p2) {
+    document.getElementById('errAdminPwd2').classList.add('show');
+    return;
+  }
+  try {
+    const { error } = await sbClient.auth.updateUser({ password: p1 });
+    throwIfError(error);
+    adminPwdChangeForced = false;
+    closeAdminChangePwdModal();
+    showToast('✓ Senha do administrador alterada!');
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+delChangelog = function(id, event) {
+  event?.stopPropagation();
+  askConfirm('Excluir este registro do histórico?', async () => {
+    try {
+      const { error } = await sbClient.from('fleet_changelog').delete().eq('id', sourceId('changelog', id));
+      throwIfError(error);
+      await loadAppData();
+      renderChangelogList();
+      showToast('✓ Excluído');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+delWeek = function(id, event) {
+  event?.stopPropagation();
+  const identity = WEEK_IDENTITY.get(Number(id));
+  if (!identity) return;
+  askConfirm('Excluir os registros desta semana?', async () => {
+    const end = getWeekDays(identity.weekStart)[6];
+    try {
+      const { error } = await sbClient.from('week_entries').delete()
+        .eq('carrier_id', identity.carrierId)
+        .gte('operation_date', identity.weekStart)
+        .lte('operation_date', end);
+      throwIfError(error);
+      await loadAppData();
+      renderAdminWeek();
+      showToast('✓ Semana excluída');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+function parseCsvRows(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  const lines = text.trim().split(/\r?\n/);
+  const parseRow = row => {
+    const cols = [];
+    let current = '';
+    let quoted = false;
+    for (let i = 0; i < row.length; i++) {
+      const ch = row[i];
+      if (ch === '"' && !quoted) quoted = true;
+      else if (ch === '"' && quoted && row[i + 1] === '"') { current += '"'; i++; }
+      else if (ch === '"' && quoted) quoted = false;
+      else if (ch === ',' && !quoted) { cols.push(current.trim()); current = ''; }
+      else current += ch;
+    }
+    cols.push(current.trim());
+    return cols;
+  };
+  return { headers: parseRow(lines[0]).map(h => h.toLowerCase()), rows: lines.slice(1).filter(Boolean).map(parseRow) };
+}
+
+importCSV = async function(text) {
+  if (currentUser?.role !== 'admin') {
+    showToast('⚠ Apenas administradores podem importar dados');
+    return;
+  }
+  try {
+    const { headers, rows } = parseCsvRows(text);
+    const carrierIndex = headers.indexOf('transportadora');
+    const vehicleIndex = headers.indexOf('modelo de veículo') >= 0 ? headers.indexOf('modelo de veículo') : headers.indexOf('modelo');
+    const quantityIndex = headers.indexOf('quantidade ativa') >= 0 ? headers.indexOf('quantidade ativa') : headers.indexOf('quantidade');
+    if (carrierIndex < 0 || vehicleIndex < 0 || quantityIndex < 0) {
+      throw new Error('CSV não reconhecido. Use as colunas Transportadora, Modelo e Quantidade Ativa.');
+    }
+    const upserts = [];
+    rows.forEach(row => {
+      const carrier = cleanImportedText(row[carrierIndex], 150);
+      const vehicle = cleanImportedText(row[vehicleIndex], 150);
+      const quantity = Math.max(0, parseInt(row[quantityIndex]) || 0);
+      if (!DB_CATALOG.carrierIdByName.has(carrier) || !DB_CATALOG.vehicleIdByName.has(vehicle)) return;
+      upserts.push({
+        carrier_id: carrierId(carrier),
+        vehicle_id: vehicleId(vehicle),
+        quantity,
+        updated_by: currentUser.id
+      });
+    });
+    if (!upserts.length) throw new Error('Nenhuma linha válida foi encontrada no CSV.');
+    const { error } = await sbClient.from('active_fleet').upsert(upserts, { onConflict: 'carrier_id,vehicle_id' });
+    throwIfError(error);
+    await loadAppData();
+    renderAdminAvail();
+    showToast(`✓ ${upserts.length} linha(s) importada(s)`);
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+importJSON = async function(data) {
+  if (currentUser?.role !== 'admin') {
+    showToast('⚠ Apenas administradores podem importar dados');
+    return;
+  }
+  try {
+    let imported = 0;
+    if (data.active_fleet && typeof data.active_fleet === 'object') {
+      const rows = [];
+      Object.entries(data.active_fleet).forEach(([carrier, vehicles]) => {
+        if (!DB_CATALOG.carrierIdByName.has(carrier)) return;
+        Object.entries(vehicles || {}).forEach(([vehicle, quantity]) => {
+          if (!DB_CATALOG.vehicleIdByName.has(vehicle)) return;
+          rows.push({
+            carrier_id: carrierId(carrier),
+            vehicle_id: vehicleId(vehicle),
+            quantity: Math.max(0, parseInt(quantity) || 0),
+            updated_by: currentUser.id
+          });
+        });
+      });
+      if (rows.length) {
+        const { error } = await sbClient.from('active_fleet').upsert(rows, { onConflict: 'carrier_id,vehicle_id' });
+        throwIfError(error);
+        imported += rows.length;
+      }
+    }
+
+    if (data.carrier_fixed_vehicles && typeof data.carrier_fixed_vehicles === 'object') {
+      const rows = [];
+      Object.entries(data.carrier_fixed_vehicles).forEach(([carrier, vehicles]) => {
+        if (!DB_CATALOG.carrierIdByName.has(carrier)) return;
+        (vehicles || []).forEach(vehicle => {
+          if (!DB_CATALOG.vehicleIdByName.has(vehicle)) return;
+          rows.push({ carrier_id: carrierId(carrier), vehicle_id: vehicleId(vehicle), enabled: true });
+        });
+      });
+      if (rows.length) {
+        const { error } = await sbClient.from('carrier_vehicle_access').upsert(rows, { onConflict: 'carrier_id,vehicle_id' });
+        throwIfError(error);
+        imported += rows.length;
+      }
+    }
+
+    if (Array.isArray(data.fleet_units)) {
+      const rows = data.fleet_units.map(unit => {
+        if (!DB_CATALOG.carrierIdByName.has(unit.carrier) || !DB_CATALOG.vehicleIdByName.has(unit.vehicle)) return null;
+        const status = { disponivel: 'available', quebrado: 'broken', manutencao: 'maintenance' }[unit.status] || 'available';
+        return {
+          carrier_id: carrierId(unit.carrier),
+          vehicle_id: vehicleId(unit.vehicle),
+          plate: String(unit.plate || '').trim().toUpperCase(),
+          status,
+          note: cleanImportedText(unit.note || '', 500) || null,
+          updated_by: currentUser.id
+        };
+      }).filter(row => row && row.plate.length >= 5);
+      if (rows.length) {
+        const { error } = await sbClient.from('fleet_units').upsert(rows, { onConflict: 'plate' });
+        throwIfError(error);
+        imported += rows.length;
+      }
+    }
+
+    if (Array.isArray(data.vehicle_incoming)) {
+      const rows = data.vehicle_incoming.map(item => {
+        if (!DB_CATALOG.carrierIdByName.has(item.carrier) || !DB_CATALOG.vehicleIdByName.has(item.vehicle) || !validISODate(item.expectedDate)) return null;
+        const status = { pendente: 'pending', entrou: 'entered', cancelado: 'cancelled' }[item.status] || 'pending';
+        return {
+          carrier_id: carrierId(item.carrier),
+          vehicle_id: vehicleId(item.vehicle),
+          quantity: Math.max(1, parseInt(item.quantity) || 1),
+          expected_date: item.expectedDate,
+          note: cleanImportedText(item.note || '', 500) || null,
+          status,
+          created_by: currentUser.id,
+          entered_by: status === 'entered' ? currentUser.id : null,
+          entered_at: status === 'entered' ? item.enteredAt || new Date().toISOString() : null
+        };
+      }).filter(Boolean);
+      if (rows.length) {
+        const { error } = await sbClient.from('incoming_vehicles').insert(rows);
+        throwIfError(error);
+        imported += rows.length;
+      }
+    }
+
+    if (Array.isArray(data.frota_week)) {
+      const rows = [];
+      data.frota_week.forEach(rec => {
+        Object.entries(sanitizeWeekData(rec.data || {})).forEach(([carrier, vehicles]) => {
+          Object.entries(vehicles || {}).forEach(([vehicle, dates]) => {
+            Object.entries(dates || {}).forEach(([date, cycles]) => {
+              Object.entries(cycles || {}).forEach(([cycle, quantity]) => {
+                if (quantity <= 0) return;
+                rows.push({
+                  carrier_id: carrierId(carrier),
+                  vehicle_id: vehicleId(vehicle),
+                  operation_date: date,
+                  cycle,
+                  quantity,
+                  updated_by: currentUser.id
+                });
+              });
+            });
+          });
+        });
+      });
+      if (rows.length) {
+        const { error } = await sbClient.from('week_entries').upsert(rows, { onConflict: 'carrier_id,vehicle_id,operation_date,cycle' });
+        throwIfError(error);
+        imported += rows.length;
+      }
+    }
+
+    await loadAppData();
+    renderAdminAvail();
+    showToast(`✓ Backup importado: ${imported} registro(s). Usuários e senhas não são importados.`);
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  }
+};
+
+async function bootstrapSupabaseApp() {
+  patchLoginUI();
+  setAuthBusy(true);
+  try {
+    await loadCatalogs();
+    const { data, error } = await sbClient.auth.getSession();
+    throwIfError(error);
+    if (data.session?.user) await startAuthenticatedSession(data.session.user);
+    else showScreen('loginScreen');
+    supabaseBooted = true;
+  } catch (error) {
+    console.error(error);
+    showScreen('loginScreen');
+    authMessage(`Falha ao iniciar o sistema: ${friendlyError(error)}`, true);
+  } finally {
+    setAuthBusy(false);
+  }
+
+  sbClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      passwordRecoveryMode = true;
+      document.querySelector('#pwdChangeScreen h1').textContent = 'Criar nova senha';
+      document.querySelector('#pwdChangeScreen > .login-card > p').textContent = 'Defina uma nova senha para sua conta.';
+      showScreen('pwdChangeScreen');
+      setTimeout(() => document.getElementById('newPwd1').focus(), 80);
+    }
+    if (event === 'SIGNED_OUT' && supabaseBooted && currentUser) {
+      currentUser = null;
+      resetRuntimeState();
+      showScreen('loginScreen');
+    }
+  });
+}
+
+bootstrapSupabaseApp();
+
+</script>
 </body>
 </html>
