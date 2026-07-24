@@ -3391,6 +3391,7 @@ renderAdminUsers = function() {
     u.email.toLowerCase().includes(q) ||
     (u.carrier || '').toLowerCase().includes(q)
   );
+  const activeAdminCount = DB_CACHE.users.filter(u => u.role === 'admin' && u.status === 'approved').length;
   document.getElementById('usersCount').textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
   const list = document.getElementById('usersList');
   if (!users.length) {
@@ -3402,24 +3403,30 @@ renderAdminUsers = function() {
     const bg = u.role === 'admin' ? 'var(--chp-l)' : u.status === 'approved' ? 'var(--green-l)' : u.status === 'blocked' ? '#FEE2E2' : 'var(--pm1-l)';
     const color = u.role === 'admin' ? 'var(--chp)' : u.status === 'approved' ? 'var(--green)' : u.status === 'blocked' ? '#DC2626' : 'var(--pm1)';
     const isSelf = u.id === currentUser.id;
+    const isLastAdmin = u.role === 'admin' && u.status === 'approved' && activeAdminCount <= 1;
     return `
-      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div class="avatar" style="width:34px;height:34px;font-size:12px">${esc(ini(u.name))}</div>
-        <div style="flex:1;min-width:200px">
-          <div style="font-weight:700;font-size:13px">${esc(u.name)}</div>
+        <div style="flex:1;min-width:220px">
+          <div style="font-weight:700;font-size:13px">${esc(u.name)}${isSelf ? ' <span style="font-size:10px;color:var(--muted);font-weight:600">(você)</span>' : ''}</div>
           <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
           <div style="font-size:11px;color:var(--muted)">${esc(u.carrier || 'Sem transportadora')}</div>
         </div>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${bg};color:${color}">${statusLabel}</span>
         ${u.role !== 'admin' && u.status !== 'approved' ? `<button class="btn btn-p user-db-action" data-action="approve" data-index="${index}" style="font-size:12px;padding:6px 12px">Aprovar</button>` : ''}
-        ${u.role !== 'admin' ? `<button class="btn btn-s user-db-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Enviar reset</button>` : ''}
+        ${u.role !== 'admin' ? `<button class="btn btn-s user-db-action" data-action="promote" data-index="${index}" style="font-size:12px;padding:6px 12px;color:var(--chp);border-color:#C4B5FD">Tornar admin</button>` : ''}
+        ${u.role === 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="demote" data-index="${index}" ${isLastAdmin ? 'disabled' : ''} title="${isLastAdmin ? 'Não é possível remover o último administrador' : 'Remover acesso administrativo'}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5;${isLastAdmin ? 'opacity:.45;cursor:not-allowed' : ''}">Remover admin</button>` : ''}
+        ${!isSelf ? `<button class="btn btn-s user-db-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Enviar reset</button>` : ''}
         ${u.role !== 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="block" data-index="${index}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5">${u.status === 'blocked' ? 'Manter bloqueado' : 'Bloquear'}</button>` : ''}
       </div>`;
   }).join('');
   list.querySelectorAll('.user-db-action').forEach(btn => btn.addEventListener('click', () => {
+    if (btn.disabled) return;
     const user = users[Number(btn.dataset.index)];
     if (!user) return;
     if (btn.dataset.action === 'approve') adminApproveUser(user.id);
+    if (btn.dataset.action === 'promote') adminSetUserRole(user.id, true);
+    if (btn.dataset.action === 'demote') adminSetUserRole(user.id, false);
     if (btn.dataset.action === 'reset') adminResetUserPwd(user.id);
     if (btn.dataset.action === 'block') adminDeleteUser(user.id);
   }));
@@ -3465,6 +3472,42 @@ adminDeleteUser = function(userId) {
       await loadAppData();
       renderAdminUsers();
       showToast('✓ Usuário bloqueado');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
+
+
+adminSetUserRole = function(userId, makeAdmin) {
+  const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
+  if (!user) return;
+
+  if (!makeAdmin && user.id === currentUser.id) {
+    showToast('⚠ Você não pode remover seu próprio acesso administrativo');
+    return;
+  }
+
+  const activeAdminCount = DB_CACHE.users.filter(u => u.role === 'admin' && u.status === 'approved').length;
+  if (!makeAdmin && user.role === 'admin' && activeAdminCount <= 1) {
+    showToast('⚠ Não é possível remover o último administrador');
+    return;
+  }
+
+  const message = makeAdmin
+    ? `Tornar ${user.name} administrador? A pessoa terá acesso a todas as transportadoras e configurações.`
+    : `Remover o acesso administrativo de ${user.name}? A conta ficará bloqueada e sem transportadora até ser reconfigurada.`;
+
+  askConfirm(message, async () => {
+    try {
+      const { error } = await sbClient.rpc('admin_set_user_role', {
+        p_user_id: user.id,
+        p_make_admin: makeAdmin
+      });
+      throwIfError(error);
+      await loadAppData();
+      renderAdminUsers();
+      showToast(makeAdmin ? '✓ Usuário promovido a administrador!' : '✓ Acesso administrativo removido');
     } catch (error) {
       showToast(`⚠ ${friendlyError(error)}`);
     }
