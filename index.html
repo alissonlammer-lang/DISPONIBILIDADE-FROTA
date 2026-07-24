@@ -3713,8 +3713,298 @@ importJSON = async function(data) {
   }
 };
 
+
+/* ===================== AJUSTE DE FROTA PELO ADMIN ===================== */
+let adminFleetEditCarrier = null;
+let adminFleetEditOriginal = {};
+
+function installAdminFleetEditor() {
+  if (document.getElementById('adminFleetEditModal')) return;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-ov';
+  modal.id = 'adminFleetEditModal';
+  modal.innerHTML = `
+    <div class="modal" style="max-width:760px;width:min(760px,calc(100vw - 24px));max-height:88vh;display:flex;flex-direction:column">
+      <h2>Ajustar Frota Ativa</h2>
+      <p id="adminFleetEditSubtitle" style="margin-bottom:12px">—</p>
+      <div id="adminFleetEditRows" style="overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:48vh"></div>
+      <div style="margin-top:13px">
+        <label id="adminFleetEditNoteLabel" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:5px">Motivo da alteração</label>
+        <input type="text" id="adminFleetEditNote" placeholder="Ex: correção informada pela MLP / veículo entrou / veículo retirado">
+        <div class="merr" id="adminFleetEditNoteErr">Informe o motivo quando houver redução de frota.</div>
+      </div>
+      <div id="adminFleetEditTotals" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+      <div class="mact" style="margin-top:14px">
+        <button class="mbtn-c" onclick="closeAdminFleetEditor()">Cancelar</button>
+        <button class="mbtn-ok" id="adminFleetEditSaveBtn" onclick="saveAdminFleetEditor()">Salvar alterações</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+
+  const style = document.createElement('style');
+  style.textContent = `
+    .admin-fleet-card{border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px;background:#fff}
+    .admin-fleet-card-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .admin-fleet-card-name{font-weight:700;font-size:13px;flex:1;min-width:220px}
+    .admin-fleet-edit-btn{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;padding:6px 11px;border-radius:7px;border:1px solid var(--accent);background:var(--accent-l);color:var(--accent);cursor:pointer}
+    .admin-fleet-edit-btn:hover{background:var(--accent);color:#fff}
+    .admin-fleet-row{display:grid;grid-template-columns:minmax(190px,1fr) auto auto;gap:12px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border)}
+    .admin-fleet-row:last-child{border-bottom:none}
+    .admin-fleet-model{font-size:12px;font-weight:600;color:var(--text)}
+    .admin-fleet-model-meta{font-size:10.5px;color:var(--muted);margin-top:2px}
+    .admin-fleet-stepper{display:flex;align-items:center;gap:5px}
+    .admin-fleet-delta{font-family:'DM Mono',monospace;font-size:11px;font-weight:700;min-width:44px;text-align:right}
+    @media(max-width:640px){.admin-fleet-row{grid-template-columns:1fr auto}.admin-fleet-delta{grid-column:2}}
+  `;
+  document.head.appendChild(style);
+}
+
+function adminFleetModelsFor(carrier) {
+  const existing = Object.keys(DB_CACHE.active_fleet[carrier] || {});
+  return Array.from(new Set([...visibleVehiclesFor(carrier), ...existing]))
+    .filter(vehicle => DB_CATALOG.vehicleIdByName.has(vehicle));
+}
+
+function adminFleetValueInputs() {
+  return Array.from(document.querySelectorAll('#adminFleetEditRows input[data-admin-fleet-vehicle]'));
+}
+
+function updateAdminFleetEditorTotals() {
+  const inputs = adminFleetValueInputs();
+  let beforeTotal = 0;
+  let afterTotal = 0;
+  let hasDecrease = false;
+  let changed = 0;
+
+  inputs.forEach(input => {
+    const vehicle = input.dataset.adminFleetVehicle;
+    const before = Number(adminFleetEditOriginal[vehicle] || 0);
+    const after = Math.max(0, parseInt(input.value, 10) || 0);
+    input.value = after;
+    beforeTotal += before;
+    afterTotal += after;
+    if (before !== after) changed += 1;
+    if (after < before) hasDecrease = true;
+
+    const delta = document.getElementById(input.dataset.deltaId);
+    if (delta) {
+      const diff = after - before;
+      delta.textContent = diff === 0 ? '—' : `${diff > 0 ? '+' : ''}${diff}`;
+      delta.style.color = diff > 0 ? 'var(--green)' : diff < 0 ? '#DC2626' : 'var(--muted)';
+    }
+  });
+
+  const totalEl = document.getElementById('adminFleetEditTotals');
+  if (totalEl) {
+    const diff = afterTotal - beforeTotal;
+    totalEl.innerHTML = `Total: <b>${beforeTotal}</b> → <b>${afterTotal}</b> <span style="font-family:'DM Mono',monospace;font-weight:700;color:${diff > 0 ? 'var(--green)' : diff < 0 ? '#DC2626' : 'var(--muted)'}">(${diff > 0 ? '+' : ''}${diff})</span> · ${changed} modelo${changed !== 1 ? 's' : ''} alterado${changed !== 1 ? 's' : ''}`;
+  }
+
+  const note = document.getElementById('adminFleetEditNote');
+  const label = document.getElementById('adminFleetEditNoteLabel');
+  if (note) note.dataset.required = hasDecrease ? '1' : '0';
+  if (label) label.innerHTML = hasDecrease
+    ? 'Motivo da alteração <span style="color:#DC2626">* obrigatório quando houver redução</span>'
+    : 'Motivo da alteração (opcional)';
+  document.getElementById('adminFleetEditNoteErr')?.classList.remove('show');
+}
+
+function openAdminFleetEditor(carrier) {
+  if (!currentUser || currentUser.role !== 'admin') {
+    showToast('⚠ Acesso permitido apenas para administradores');
+    return;
+  }
+  installAdminFleetEditor();
+  adminFleetEditCarrier = carrier;
+  adminFleetEditOriginal = {};
+
+  const activeFleet = DB_CACHE.active_fleet || {};
+  const models = adminFleetModelsFor(carrier);
+  const rows = document.getElementById('adminFleetEditRows');
+  rows.innerHTML = '';
+  document.getElementById('adminFleetEditSubtitle').textContent = carrier;
+  document.getElementById('adminFleetEditNote').value = '';
+  document.getElementById('adminFleetEditNoteErr').classList.remove('show');
+
+  models.forEach((vehicle, index) => {
+    const current = Number(activeFleet[carrier]?.[vehicle] || 0);
+    adminFleetEditOriginal[vehicle] = current;
+    const meta = DB_CATALOG.vehicleMetaByName.get(vehicle);
+    const plates = DB_CACHE.fleet_units.filter(u => u.carrier === carrier && u.vehicle === vehicle).length;
+    const row = document.createElement('div');
+    row.className = 'admin-fleet-row';
+
+    const info = document.createElement('div');
+    const model = document.createElement('div');
+    model.className = 'admin-fleet-model';
+    model.textContent = vehicle;
+    info.appendChild(model);
+    if (meta?.is_fixed || meta?.is_restricted) {
+      const detail = document.createElement('div');
+      detail.className = 'admin-fleet-model-meta';
+      detail.textContent = `Frota fixa · ${plates} placa${plates !== 1 ? 's' : ''} cadastrada${plates !== 1 ? 's' : ''}`;
+      info.appendChild(detail);
+    }
+
+    const stepper = document.createElement('div');
+    stepper.className = 'admin-fleet-stepper';
+    const minus = document.createElement('button');
+    minus.type = 'button';
+    minus.className = 'qbtn';
+    minus.textContent = '−';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '0';
+    input.className = 'qinp';
+    input.style.width = '58px';
+    input.value = String(current);
+    input.dataset.adminFleetVehicle = vehicle;
+    input.dataset.deltaId = `adminFleetDelta-${index}`;
+    const plus = document.createElement('button');
+    plus.type = 'button';
+    plus.className = 'qbtn';
+    plus.textContent = '+';
+    minus.addEventListener('click', () => {
+      input.value = String(Math.max(0, (parseInt(input.value, 10) || 0) - 1));
+      updateAdminFleetEditorTotals();
+    });
+    plus.addEventListener('click', () => {
+      input.value = String((parseInt(input.value, 10) || 0) + 1);
+      updateAdminFleetEditorTotals();
+    });
+    input.addEventListener('input', updateAdminFleetEditorTotals);
+    stepper.append(minus, input, plus);
+
+    const delta = document.createElement('div');
+    delta.id = `adminFleetDelta-${index}`;
+    delta.className = 'admin-fleet-delta';
+    delta.textContent = '—';
+    delta.style.color = 'var(--muted)';
+
+    row.append(info, stepper, delta);
+    rows.appendChild(row);
+  });
+
+  document.getElementById('adminFleetEditModal').classList.add('show');
+  updateAdminFleetEditorTotals();
+}
+
+function closeAdminFleetEditor() {
+  document.getElementById('adminFleetEditModal')?.classList.remove('show');
+  adminFleetEditCarrier = null;
+  adminFleetEditOriginal = {};
+}
+
+async function saveAdminFleetEditor() {
+  if (!adminFleetEditCarrier || !currentUser || currentUser.role !== 'admin') return;
+  const noteInput = document.getElementById('adminFleetEditNote');
+  const note = noteInput.value.trim();
+  const changes = adminFleetValueInputs().map(input => {
+    const vehicle = input.dataset.adminFleetVehicle;
+    return {
+      vehicle,
+      before: Number(adminFleetEditOriginal[vehicle] || 0),
+      after: Math.max(0, parseInt(input.value, 10) || 0)
+    };
+  }).filter(item => item.before !== item.after);
+
+  if (!changes.length) {
+    showToast('Nenhuma alteração para salvar');
+    return;
+  }
+  if (changes.some(item => item.after < item.before) && !note) {
+    document.getElementById('adminFleetEditNoteErr').classList.add('show');
+    noteInput.focus();
+    return;
+  }
+
+  const button = document.getElementById('adminFleetEditSaveBtn');
+  button.disabled = true;
+  button.textContent = 'Salvando...';
+  try {
+    const payload = changes.map(item => ({
+      carrier_id: carrierId(adminFleetEditCarrier),
+      vehicle_id: vehicleId(item.vehicle),
+      after_quantity: item.after
+    }));
+    const { error } = await sbClient.rpc('apply_active_fleet_changes', {
+      p_changes: payload,
+      p_note: note || `Ajuste administrativo por ${currentUser.name}`
+    });
+    throwIfError(error);
+    const savedCarrier = adminFleetEditCarrier;
+    closeAdminFleetEditor();
+    await loadAppData();
+    renderAdminAvail();
+    showToast(`✓ Frota de ${savedCarrier} atualizada`);
+  } catch (error) {
+    showToast(`⚠ ${friendlyError(error)}`);
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Salvar alterações';
+  }
+}
+
+renderActiveFleetSnapshot = function() {
+  const activeFleet = loadActiveFleet();
+  const el = document.getElementById('activeFleetSnapshot');
+  if (!el) return;
+  el.innerHTML = '';
+
+  CARRIERS.forEach(carrier => {
+    const data = activeFleet[carrier] || {};
+    const rows = Object.keys(data).filter(vehicle => Number(data[vehicle] || 0) > 0);
+    const total = rows.reduce((sum, vehicle) => sum + Number(data[vehicle] || 0), 0);
+    const last = lastUpdateFor(carrier);
+    const lastTxt = last
+      ? `Última atualização: ${last.name} · ${new Date(last.at).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`
+      : 'Sem histórico de alteração registrado';
+
+    const card = document.createElement('div');
+    card.className = 'admin-fleet-card';
+
+    const head = document.createElement('div');
+    head.className = 'admin-fleet-card-head';
+    const name = document.createElement('span');
+    name.className = 'admin-fleet-card-name';
+    name.textContent = carrier;
+    const badge = document.createElement('span');
+    badge.className = `bdg ${total > 0 ? 'bdg-gr' : 'bdg-gy'}`;
+    badge.textContent = `${total} veíc.`;
+    const edit = document.createElement('button');
+    edit.type = 'button';
+    edit.className = 'admin-fleet-edit-btn';
+    edit.textContent = 'Ajustar frota';
+    edit.addEventListener('click', () => openAdminFleetEditor(carrier));
+    head.append(name, badge, edit);
+
+    const summary = document.createElement('div');
+    summary.style.cssText = 'font-size:12px;color:var(--muted);margin-bottom:4px';
+    if (rows.length) {
+      rows.forEach((vehicle, index) => {
+        if (index > 0) summary.appendChild(document.createTextNode(' · '));
+        summary.appendChild(document.createTextNode(`${vehicle}: `));
+        const value = document.createElement('b');
+        value.style.color = 'var(--text)';
+        value.textContent = String(data[vehicle]);
+        summary.appendChild(value);
+      });
+    } else {
+      summary.textContent = 'Nenhum veículo ativo informado.';
+    }
+
+    const lastLine = document.createElement('div');
+    lastLine.style.cssText = 'font-size:10.5px;color:var(--muted);font-style:italic';
+    lastLine.textContent = lastTxt;
+    card.append(head, summary, lastLine);
+    el.appendChild(card);
+  });
+};
+
 async function bootstrapSupabaseApp() {
   patchLoginUI();
+  installAdminFleetEditor();
   setAuthBusy(true);
   try {
     await loadCatalogs();
