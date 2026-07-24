@@ -2866,6 +2866,7 @@ saveFleetUnits = list => { DB_CACHE.fleet_units = cloneData(list); return true; 
 saveCarrierFixedVehiclesData = data => { DB_CACHE.carrier_fixed_vehicles = cloneData(data); return true; };
 
 function openUserApplication() {
+  adminSessionGranted = false;
   resetRuntimeState();
   document.getElementById('userAvatar').textContent = ini(currentUser.name);
   document.getElementById('userLabel').textContent = currentUser.name;
@@ -2887,6 +2888,9 @@ function openUserApplication() {
 }
 
 function openAdminApplication() {
+  // O Supabase já validou que o perfil é admin aprovado.
+  // Libera o guard legado do painel antes de trocar de tela.
+  adminSessionGranted = true;
   resetRuntimeState();
   compareWeekStart = getMondayOf(new Date());
   showScreen('adminScreen');
@@ -3067,6 +3071,7 @@ doChangePassword = async function() {
 doLogout = async function() {
   try { await sbClient.auth.signOut(); } catch (error) { console.warn(error); }
   currentUser = null;
+  adminSessionGranted = false;
   resetRuntimeState();
   document.getElementById('loginPwd').value = '';
   showScreen('loginScreen');
