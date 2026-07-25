@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; connect-src 'self' https://tubjquxufgjyhybqvdqs.supabase.co wss://tubjquxufgjyhybqvdqs.supabase.co; upgrade-insecure-requests">
 <title>Disponibilidade de Frota</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -945,6 +947,9 @@ function switchAdminTab(id){
 // ---- LOGIN ----
 const ini=name=>{const w=name.trim().split(/\s+/);return w.length===1?w[0].slice(0,2).toUpperCase():(w[0][0]+w[1][0]).toUpperCase()};
 function esc(str){return String(str==null?'':str).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function escAttr(str){return esc(str).replace(/`/g,'&#96;')}
+function urlToken(str){return encodeURIComponent(String(str==null?'':str)).replace(/[!'()*]/g,c=>'%'+c.charCodeAt(0).toString(16).toUpperCase())}
+function clearNode(node){if(node)node.replaceChildren()}
 let pendingLoginUser=null;
 async function doLogin(){
   const name=document.getElementById('loginName').value.trim();
@@ -1292,7 +1297,7 @@ function renderWeekUI(){
     }).join('');
     const wkTot=wCarrierWeekTotal(carrier);
 
-    hdr.innerHTML=`<div class="wkbadge">${ini(carrier)}</div><div class="cname" style="min-width:0;flex:1">${carrier}</div><span class="pcbdg" style="background:var(--accent-l);color:var(--accent)" id="wctot-${ci}">Semana: ${wkTot}</span><button class="tbtn open" id="wtoggle-${ci}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
+    hdr.innerHTML=`<div class="wkbadge">${esc(ini(carrier))}</div><div class="cname" style="min-width:0;flex:1">${esc(carrier)}</div><span class="pcbdg" style="background:var(--accent-l);color:var(--accent)" id="wctot-${ci}">Semana: ${wkTot}</span><button class="tbtn open" id="wtoggle-${ci}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
     hdr.addEventListener('click',()=>{card.classList.toggle('collapsed');document.getElementById(`wtoggle-${ci}`).classList.toggle('open')});
 
     const body=document.createElement('div'); body.className='week-carrier-body';
@@ -1309,7 +1314,7 @@ function renderWeekUI(){
     visibleVehiclesFor(carrier).forEach((vehicle,vi)=>{
       cycles.forEach(cy=>{
         const tr=document.createElement('tr');
-        const rowLabel=cycles.length>1?`${vehicle} <span style="font-size:10px;color:var(--muted)">(${cy})</span>`:vehicle;
+        const rowLabel=cycles.length>1?`${esc(vehicle)} <span style="font-size:10px;color:var(--muted)">(${cy})</span>`:esc(vehicle);
         let html=`<td class="td-v">${rowLabel}</td>`;
         days.forEach(d=>{
           const id=`winp-${ci}-${vi}-${cy}-${d.replace(/-/g,'')}`;
@@ -1387,7 +1392,7 @@ function renderWeekSummary(days,cycles){
     const tot=dayTots.reduce((a,b)=>a+b,0);
     grand+=tot;
     dayTots.forEach((t,i)=>dayGrand[i]+=t);
-    let html=`<td class="td-cn">${carrier}</td>`;
+    let html=`<td class="td-cn">${esc(carrier)}</td>`;
     dayTots.forEach((t,i)=>html+=`<td class="wn${t===0?' z':''}${isToday(days[i])?' today-col':''}">${t}</td>`);
     html+=`<td class="wn${tot===0?' z':''}">${tot}</td>`;
     tr.innerHTML=html; tbody.appendChild(tr);
@@ -1479,7 +1484,7 @@ function buildUI(){
   activeCarriers().forEach((carrier,ci)=>{
     const card=document.createElement('div'); card.className='carrier-card'; card.id=`card-${ci}`;
     const hdr=document.createElement('div'); hdr.className='carrier-hdr';
-    hdr.innerHTML=`<div class="cbadge">${ini(carrier)}</div><div class="cname">${carrier}</div><div class="ctotal zero" id="total-${ci}">0 veíc.</div><button class="tbtn open" id="toggle-${ci}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
+    hdr.innerHTML=`<div class="cbadge">${esc(ini(carrier))}</div><div class="cname">${esc(carrier)}</div><div class="ctotal zero" id="total-${ci}">0 veíc.</div><button class="tbtn open" id="toggle-${ci}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
     hdr.addEventListener('click',()=>{card.classList.toggle('collapsed');document.getElementById(`toggle-${ci}`).classList.toggle('open')});
     const vg=document.createElement('div'); vg.className='vgrid';
     visibleVehiclesFor(carrier).forEach((vehicle,vi)=>{
@@ -1514,7 +1519,7 @@ function buildUI(){
 function updateTotals(ci){const t=cTotal(activeCarriers()[ci]);const el=document.getElementById(`total-${ci}`);el.textContent=`${t} veíc.`;el.className=`ctotal${t===0?' zero':''}`;updateSummary()}
 function updateSummary(){
   const body=document.getElementById('summaryBody'); body.innerHTML=''; let grand=0;
-  activeCarriers().forEach(c=>{const t=cTotal(c);grand+=t;const filled=visibleVehiclesFor(c).filter(v=>getV(c,v)>0);const preview=filled.length>0?filled.slice(0,3).map(v=>`${v}: <b>${getV(c,v)}</b>`).join(', ')+(filled.length>3?` +${filled.length-3}`:''): '<span style="color:#9CA3AF">—</span>';const tr=document.createElement('tr');tr.innerHTML=`<td class="sc">${c}</td><td style="font-size:12px">${preview}</td><td class="sn ${t===0?'z':''}">${t}</td>`;body.appendChild(tr)});
+  activeCarriers().forEach(c=>{const t=cTotal(c);grand+=t;const filled=visibleVehiclesFor(c).filter(v=>getV(c,v)>0);const preview=filled.length>0?filled.slice(0,3).map(v=>`${esc(v)}: <b>${getV(c,v)}</b>`).join(', ')+(filled.length>3?` +${filled.length-3}`:''): '<span style="color:#9CA3AF">—</span>';const tr=document.createElement('tr');tr.innerHTML=`<td class="sc">${esc(c)}</td><td style="font-size:12px">${preview}</td><td class="sn ${t===0?'z':''}">${t}</td>`;body.appendChild(tr)});
   document.getElementById('grandTotal').textContent=`${grand} veículo${grand!==1?'s':''}`;
 }
 function clearAll(){askConfirm('Limpar todos os valores?',()=>{activeCarriers().forEach((c,ci)=>VEHICLES.forEach((v,vi)=>{setV(c,v,0);const i=document.getElementById(`inp-${ci}-${vi}`);if(i){i.value=0;i.classList.remove('nz')}updateTotals(ci)}));showToast('✓ Limpo')})}
@@ -1535,7 +1540,7 @@ function saveForm(){
   const hasDecrease=changes.some(ch=>ch.after<ch.before);
   document.getElementById('activeFleetChangeSummary').innerHTML=changes.map(ch=>{
     const diff=ch.after-ch.before;
-    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px"><span>${ch.vehicle}</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:${diff>0?'var(--green)':'#DC2626'}">${ch.before} → ${ch.after} (${diff>0?'+':''}${diff})</span></div>`;
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0;font-size:12px"><span>${esc(ch.vehicle)}</span><span style="font-family:'DM Mono',monospace;font-weight:700;color:${diff>0?'var(--green)':'#DC2626'}">${ch.before} → ${ch.after} (${diff>0?'+':''}${diff})</span></div>`;
   }).join('');
   document.getElementById('activeFleetNoteInput').value='';
   document.getElementById('activeFleetNoteInput').dataset.required=hasDecrease?'1':'0';
@@ -1606,7 +1611,7 @@ function renderIncomingList(){
   el.innerHTML=list.map(x=>{
     const d=x.expectedDate?new Date(x.expectedDate+'T12:00:00').toLocaleDateString('pt-BR'):'—';
     return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;margin-bottom:6px">
-      <span style="font-weight:700;font-size:12px">+${x.quantity} ${x.vehicle}</span>
+      <span style="font-weight:700;font-size:12px">+${x.quantity} ${esc(x.vehicle)}</span>
       <span class="bdg bdg-bl" style="font-size:11px">entra em ${d}</span>
       ${x.note?`<span style="font-size:11px;color:var(--muted)">📝 ${esc(x.note)}</span>`:''}
       <div style="display:flex;gap:4px;margin-left:auto;flex-wrap:wrap">
@@ -1732,7 +1737,7 @@ function renderFixedFleetTab(){
   const vehicles=fixedVehiclesFor(currentUser.carrier);
   grid.innerHTML='';
   if(!vehicles.length){
-    grid.innerHTML='<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;color:var(--muted);font-size:13px">Nenhum veículo de frota fixa definido para a transportadora <b>'+currentUser.carrier+'</b> ainda. Fale com o gestor para configurar.</div>';
+    grid.innerHTML='<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:20px;color:var(--muted);font-size:13px">Nenhum veículo de frota fixa definido para a transportadora <b>'+esc(currentUser.carrier)+'</b> ainda. Fale com o gestor para configurar.</div>';
     return;
   }
   vehicles.forEach(vehicle=>{
@@ -1744,13 +1749,13 @@ function renderFixedFleetTab(){
     const card=document.createElement('div');
     card.style.cssText='background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:14px';
     let html=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-      <div style="font-weight:700;font-size:14px">${vehicle}</div>
+      <div style="font-weight:700;font-size:14px">${esc(vehicle)}</div>
       <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${FLEET_STATUSES.disponivel.bg};color:${FLEET_STATUSES.disponivel.color}">${counts.disponivel} disponível${counts.disponivel!==1?'is':''}</span>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${FLEET_STATUSES.quebrado.bg};color:${FLEET_STATUSES.quebrado.color}">${counts.quebrado} quebrado${counts.quebrado!==1?'s':''}</span>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${FLEET_STATUSES.manutencao.bg};color:${FLEET_STATUSES.manutencao.color}">${counts.manutencao} manutenção</span>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${consistencyGap===0?'var(--green-l)':'#FEE2E2'};color:${consistencyGap===0?'var(--green)':'#DC2626'}">Ativa: ${activeQty} · Gap: ${consistencyGap>0?'+':''}${consistencyGap}</span>
-        <button class="btn btn-s" style="font-size:12px;padding:6px 12px" onclick="openFixedAddModal('${vehicle.replace(/'/g,"\\'")}')">+ Adicionar</button>
+        <button class="btn btn-s" style="font-size:12px;padding:6px 12px" onclick="openFixedAddModal(decodeURIComponent('${urlToken(vehicle)}'))">+ Adicionar</button>
       </div>
     </div>`;
     if(!units.length){
@@ -1796,7 +1801,7 @@ function renderActiveFleetByModel(){
   document.getElementById('modelGrandTotal').textContent=`${grand} veículo${grand!==1?'s':''}`;
   const body=document.getElementById('modelSummaryBody');
   if(!entries.length){body.innerHTML='<tr><td colspan="2" style="text-align:center;color:var(--muted);padding:16px">Nenhum dado ainda.</td></tr>';return;}
-  body.innerHTML=entries.map(([v,q])=>`<tr><td class="sc">${v}</td><td class="sn">${q}</td></tr>`).join('');
+  body.innerHTML=entries.map(([v,q])=>`<tr><td class="sc">${esc(v)}</td><td class="sn">${q}</td></tr>`).join('');
 }
 function lastUpdateFor(carrier){
   const log=loadRecords('fleet_changelog');
@@ -1816,7 +1821,7 @@ function renderActiveFleetSnapshot(){
     const lastTxt=last?`Última atualização: ${esc(last.name)} · ${new Date(last.at).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}`:'Sem histórico de alteração registrado';
     return `<div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-weight:700;font-size:13px">${c}</span>
+        <span style="font-weight:700;font-size:13px">${esc(c)}</span>
         <span class="bdg bdg-gr">${total} veíc.</span>
       </div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${rows.map(v=>`${esc(v)}: <b style="color:var(--text)">${activeFleet[c][v]}</b>`).join(' · ')}</div>
@@ -1832,7 +1837,7 @@ function renderAdminIncoming(){
   el.innerHTML=list.map(x=>{
     const d=x.expectedDate?new Date(x.expectedDate+'T12:00:00').toLocaleDateString('pt-BR'):'—';
     return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;flex-wrap:wrap;margin-bottom:6px">
-      <span style="font-weight:700;font-size:12px">+${x.quantity} ${x.vehicle}</span>
+      <span style="font-weight:700;font-size:12px">+${x.quantity} ${esc(x.vehicle)}</span>
       <span style="font-size:11px;color:var(--muted)">${esc(x.carrier)}</span>
       <span class="bdg bdg-bl" style="font-size:11px">entra em ${d}</span>
       ${x.note?`<span style="font-size:11px;color:var(--muted)">📝 ${esc(x.note)}</span>`:''}
@@ -1962,6 +1967,7 @@ function renderAdminWeek(){
 }
 function delWeek(id,e){e.stopPropagation();askConfirm('Excluir?',()=>{const r=loadRecords('frota_week');saveRecords('frota_week',r.filter(x=>x.id!==id));renderAdminWeek();showToast('✓ Excluído')})}
 
+let legacyUsersActionMap=new Map();
 function renderAdminUsers(){
   const q=(document.getElementById('searchUsersInput').value||'').toLowerCase();
   const users=loadUsers().filter(u=>u.name.toLowerCase().includes(q)||u.carrier.toLowerCase().includes(q));
@@ -1980,13 +1986,19 @@ function renderAdminUsers(){
       <button class="btn btn-s user-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Resetar senha</button>
       <button class="btn btn-s user-action" data-action="delete" data-index="${index}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5">Excluir</button>
     </div>`).join('');
-  list.querySelectorAll('.user-action').forEach(btn=>btn.addEventListener('click',()=>{
-    const user=users[Number(btn.dataset.index)];
-    if(!user)return;
-    if(btn.dataset.action==='approve') adminApproveUser(user.name);
-    else if(btn.dataset.action==='reset') adminResetUserPwd(user.name);
-    else if(btn.dataset.action==='delete') adminDeleteUser(user.name);
-  }));
+  legacyUsersActionMap = new Map(users.map((user,index)=>[String(index),user]));
+  if(list.dataset.legacyDelegated!=='1'){
+    list.dataset.legacyDelegated='1';
+    list.addEventListener('click',event=>{
+      const btn=event.target.closest('.user-action[data-action][data-index]');
+      if(!btn||!list.contains(btn))return;
+      const user=legacyUsersActionMap.get(btn.dataset.index);
+      if(!user)return;
+      if(btn.dataset.action==='approve') adminApproveUser(user.name);
+      else if(btn.dataset.action==='reset') adminResetUserPwd(user.name);
+      else if(btn.dataset.action==='delete') adminDeleteUser(user.name);
+    });
+  }
 }
 function adminApproveUser(name){
   const users=loadUsers();
@@ -2035,7 +2047,7 @@ function renderAdminFixedFleet(){
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
         <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:13px;min-width:90px">${esc(u.plate)}</span>
         <div style="flex:1;min-width:180px">
-          <div style="font-weight:600;font-size:13px">${u.vehicle}</div>
+          <div style="font-weight:600;font-size:13px">${esc(u.vehicle)}</div>
           <div style="font-size:11px;color:var(--muted)">${esc(u.carrier)}</div>
         </div>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${st.bg};color:${st.color}">${st.label}</span>
@@ -2062,11 +2074,11 @@ function populateFixedMappingSelects(){
   const cSel=document.getElementById('fixedMapCarrier');
   const vSel=document.getElementById('fixedMapVehicle');
   if(cSel.options.length<=0||cSel.dataset.filled!=='1'){
-    cSel.innerHTML='<option value="">Selecione...</option>'+CARRIERS.map(c=>`<option value="${c}">${c}</option>`).join('');
+    cSel.innerHTML='<option value="">Selecione...</option>'+CARRIERS.map(c=>`<option value="${escAttr(c)}">${esc(c)}</option>`).join('');
     cSel.dataset.filled='1';
   }
   if(vSel.options.length<=0||vSel.dataset.filled!=='1'){
-    vSel.innerHTML='<option value="">Selecione...</option>'+RESTRICTED_VEHICLES.map(v=>`<option value="${v}">${v}</option>`).join('');
+    vSel.innerHTML='<option value="">Selecione...</option>'+RESTRICTED_VEHICLES.map(v=>`<option value="${escAttr(v)}">${esc(v)}</option>`).join('');
     vSel.dataset.filled='1';
   }
 }
@@ -2108,9 +2120,9 @@ function renderFixedMappingList(){
   if(!carriersWithMap.length){el.innerHTML='<p style="font-size:12px;color:var(--muted)">Nenhuma transportadora vinculada a frota fixa ainda.</p>';return;}
   el.innerHTML=carriersWithMap.map(c=>`
     <div style="border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px">
-      <div style="font-weight:700;font-size:13px;margin-bottom:6px">${c}</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:6px">${esc(c)}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${map[c].map(v=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 6px 4px 10px;border-radius:20px;background:var(--accent-l);color:var(--accent)">${v}<button style="border:none;background:none;color:var(--accent);cursor:pointer;font-size:13px;line-height:1;padding:0 2px" onclick="removeCarrierFixedVehicle('${c.replace(/'/g,"\\'")}','${v.replace(/'/g,"\\'")}')">×</button></span>`).join('')}
+        ${map[c].map(v=>`<span style="display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 6px 4px 10px;border-radius:20px;background:var(--accent-l);color:var(--accent)">${esc(v)}<button style="border:none;background:none;color:var(--accent);cursor:pointer;font-size:13px;line-height:1;padding:0 2px" onclick="removeCarrierFixedVehicle(decodeURIComponent('${urlToken(c)}'),decodeURIComponent('${urlToken(v)}'))">×</button></span>`).join('')}
       </div>
     </div>`).join('');
 }
@@ -2154,7 +2166,7 @@ function getWeekAggregates(weekStartIso){
 function gapRow(label,curT,prevT){
   const gap=curT-prevT;
   const gapColor=gap<0?'#DC2626':gap>0?'var(--green)':'var(--muted)';
-  return `<tr><td class="sc">${label}</td><td style="text-align:right;font-family:'DM Mono',monospace">${curT}</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${prevT}</td><td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${gapColor}">${gap>0?'+':''}${gap}</td></tr>`;
+  return `<tr><td class="sc">${esc(label)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${curT}</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${prevT}</td><td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${gapColor}">${gap>0?'+':''}${gap}</td></tr>`;
 }
 function renderCompareWeek(){
   if(!compareWeekStart) compareWeekStart=getMondayOf(new Date());
@@ -2458,6 +2470,7 @@ initLoginScreen();
    ============================================================ */
 
 const SUPABASE_URL = 'https://tubjquxufgjyhybqvdqs.supabase.co';
+// Chave publicável: pode aparecer no navegador. Nunca use secret/service_role aqui; a autorização é imposta por RLS.
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_EfRK2GSEhvuXlePy42j3XQ_It5tjTd5';
 const APP_SITE_URL = 'https://disponibilidade-frota-vercel.vercel.app';
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -3452,55 +3465,132 @@ removeCarrierFixedVehicle = function(carrier, vehicle) {
   });
 };
 
+let usersListActionMap = new Map();
+
+function ensureUsersListDelegation() {
+  const list = document.getElementById('usersList');
+  if (!list || list.dataset.delegated === '1') return;
+  list.dataset.delegated = '1';
+  list.addEventListener('click', event => {
+    const button = event.target.closest('button[data-user-action][data-user-id]');
+    if (!button || button.disabled || !list.contains(button)) return;
+    const user = usersListActionMap.get(button.dataset.userId);
+    if (!user) return;
+    const action = button.dataset.userAction;
+    if (action === 'approve') adminApproveUser(user.id);
+    else if (action === 'promote') adminSetUserRole(user.id, true);
+    else if (action === 'demote') adminSetUserRole(user.id, false);
+    else if (action === 'reset') adminResetUserPwd(user.id);
+    else if (action === 'block') adminDeleteUser(user.id);
+    else if (action === 'delete') adminRemoveUserAccount(user.id);
+  });
+}
+
+function createUserActionButton({ label, action, userId, className = 'btn btn-s', style = '', disabled = false, title = '' }) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = className;
+  button.textContent = label;
+  button.dataset.userAction = action;
+  button.dataset.userId = userId;
+  button.disabled = disabled;
+  if (title) button.title = title;
+  button.style.cssText = `font-size:12px;padding:6px 12px;${style}${disabled ? ';opacity:.45;cursor:not-allowed' : ''}`;
+  return button;
+}
+
 renderAdminUsers = function() {
+  ensureUsersListDelegation();
   const q = (document.getElementById('searchUsersInput').value || '').toLowerCase();
-  const users = DB_CACHE.users.filter(u => {
-    const organization = u.role === 'admin' ? 'MELI COMPANI' : (u.carrier || 'Sem transportadora');
-    return u.name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
+  const users = DB_CACHE.users.filter(user => {
+    const organization = user.role === 'admin' ? 'MELI COMPANI' : (user.carrier || 'Sem transportadora');
+    return String(user.name || '').toLowerCase().includes(q) ||
+      String(user.email || '').toLowerCase().includes(q) ||
       organization.toLowerCase().includes(q);
   });
-  const activeAdminCount = DB_CACHE.users.filter(u => u.role === 'admin' && u.status === 'approved').length;
+  usersListActionMap = new Map(users.map(user => [user.id, user]));
+  const activeAdminCount = DB_CACHE.users.filter(user => user.role === 'admin' && user.status === 'approved').length;
   document.getElementById('usersCount').textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
   const list = document.getElementById('usersList');
+  clearNode(list);
   if (!users.length) {
-    list.innerHTML = '<p style="color:var(--muted);font-size:13px;padding:20px">Nenhum usuário cadastrado.</p>';
+    const empty = document.createElement('p');
+    empty.style.cssText = 'color:var(--muted);font-size:13px;padding:20px';
+    empty.textContent = 'Nenhum usuário cadastrado.';
+    list.appendChild(empty);
     return;
   }
-  list.innerHTML = users.map((u, index) => {
-    const statusLabel = u.role === 'admin' ? 'Administrador' : u.status === 'approved' ? 'Ativo' : u.status === 'blocked' ? 'Bloqueado' : 'Aguardando aprovação';
-    const bg = u.role === 'admin' ? 'var(--chp-l)' : u.status === 'approved' ? 'var(--green-l)' : u.status === 'blocked' ? '#FEE2E2' : 'var(--pm1-l)';
-    const color = u.role === 'admin' ? 'var(--chp)' : u.status === 'approved' ? 'var(--green)' : u.status === 'blocked' ? '#DC2626' : 'var(--pm1)';
-    const isSelf = u.id === currentUser.id;
-    const isLastAdmin = u.role === 'admin' && u.status === 'approved' && activeAdminCount <= 1;
-    return `
-      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <div class="avatar" style="width:34px;height:34px;font-size:12px">${esc(ini(u.name))}</div>
-        <div style="flex:1;min-width:220px">
-          <div style="font-weight:700;font-size:13px">${esc(u.name)}${isSelf ? ' <span style="font-size:10px;color:var(--muted);font-weight:600">(você)</span>' : ''}</div>
-          <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
-          <div style="font-size:11px;color:var(--muted)">${esc(u.role === 'admin' ? 'MELI COMPANI' : (u.carrier || 'Sem transportadora'))}</div>
-        </div>
-        <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${bg};color:${color}">${statusLabel}</span>
-        ${u.role !== 'admin' && u.status !== 'approved' ? `<button class="btn btn-p user-db-action" data-action="approve" data-index="${index}" style="font-size:12px;padding:6px 12px">Aprovar</button>` : ''}
-        ${u.role !== 'admin' ? `<button class="btn btn-s user-db-action" data-action="promote" data-index="${index}" style="font-size:12px;padding:6px 12px;color:var(--chp);border-color:#C4B5FD">Tornar admin</button>` : ''}
-        ${u.role === 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="demote" data-index="${index}" ${isLastAdmin ? 'disabled' : ''} title="${isLastAdmin ? 'Não é possível remover o último administrador' : 'Remover acesso administrativo'}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5;${isLastAdmin ? 'opacity:.45;cursor:not-allowed' : ''}">Remover admin</button>` : ''}
-        ${!isSelf ? `<button class="btn btn-s user-db-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Enviar reset</button>` : ''}
-        ${u.role !== 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="block" data-index="${index}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5">${u.status === 'blocked' ? 'Manter bloqueado' : 'Bloquear'}</button>` : ''}
-        ${!isSelf ? `<button class="btn btn-s user-db-action" data-action="delete" data-index="${index}" ${isLastAdmin ? 'disabled' : ''} title="${isLastAdmin ? 'Não é possível excluir o último administrador' : 'Excluir definitivamente este usuário'}" style="font-size:12px;padding:6px 12px;color:#991B1B;border-color:#EF4444;background:#FFF7F7;${isLastAdmin ? 'opacity:.45;cursor:not-allowed' : ''}">Excluir usuário</button>` : ''}
-      </div>`;
-  }).join('');
-  list.querySelectorAll('.user-db-action').forEach(btn => btn.addEventListener('click', () => {
-    if (btn.disabled) return;
-    const user = users[Number(btn.dataset.index)];
-    if (!user) return;
-    if (btn.dataset.action === 'approve') adminApproveUser(user.id);
-    if (btn.dataset.action === 'promote') adminSetUserRole(user.id, true);
-    if (btn.dataset.action === 'demote') adminSetUserRole(user.id, false);
-    if (btn.dataset.action === 'reset') adminResetUserPwd(user.id);
-    if (btn.dataset.action === 'block') adminDeleteUser(user.id);
-    if (btn.dataset.action === 'delete') adminRemoveUserAccount(user.id);
-  }));
+
+  users.forEach(user => {
+    const statusLabel = user.role === 'admin' ? 'Administrador' : user.status === 'approved' ? 'Ativo' : user.status === 'blocked' ? 'Bloqueado' : 'Aguardando aprovação';
+    const bg = user.role === 'admin' ? 'var(--chp-l)' : user.status === 'approved' ? 'var(--green-l)' : user.status === 'blocked' ? '#FEE2E2' : 'var(--pm1-l)';
+    const color = user.role === 'admin' ? 'var(--chp)' : user.status === 'approved' ? 'var(--green)' : user.status === 'blocked' ? '#DC2626' : 'var(--pm1)';
+    const isSelf = user.id === currentUser.id;
+    const isLastAdmin = user.role === 'admin' && user.status === 'approved' && activeAdminCount <= 1;
+
+    const card = document.createElement('div');
+    card.style.cssText = 'background:#fff;border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.style.cssText = 'width:34px;height:34px;font-size:12px';
+    avatar.textContent = ini(user.name || user.email || 'Usuário');
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:220px';
+    const name = document.createElement('div');
+    name.style.cssText = 'font-weight:700;font-size:13px';
+    name.textContent = user.name || 'Usuário';
+    if (isSelf) {
+      const self = document.createElement('span');
+      self.style.cssText = 'font-size:10px;color:var(--muted);font-weight:600';
+      self.textContent = ' (você)';
+      name.appendChild(self);
+    }
+    const email = document.createElement('div');
+    email.style.cssText = 'font-size:11px;color:var(--muted)';
+    email.textContent = user.email || '';
+    const organization = document.createElement('div');
+    organization.style.cssText = 'font-size:11px;color:var(--muted)';
+    organization.textContent = user.role === 'admin' ? 'MELI COMPANI' : (user.carrier || 'Sem transportadora');
+    info.append(name, email, organization);
+
+    const status = document.createElement('span');
+    status.style.cssText = `font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${bg};color:${color}`;
+    status.textContent = statusLabel;
+
+    card.append(avatar, info, status);
+    if (user.role !== 'admin' && user.status !== 'approved') {
+      card.appendChild(createUserActionButton({ label: 'Aprovar', action: 'approve', userId: user.id, className: 'btn btn-p' }));
+    }
+    if (user.role !== 'admin') {
+      card.appendChild(createUserActionButton({ label: 'Tornar admin', action: 'promote', userId: user.id, style: 'color:var(--chp);border-color:#C4B5FD' }));
+    }
+    if (user.role === 'admin' && !isSelf) {
+      card.appendChild(createUserActionButton({
+        label: 'Remover admin', action: 'demote', userId: user.id, disabled: isLastAdmin,
+        title: isLastAdmin ? 'Não é possível remover o último administrador' : 'Remover acesso administrativo',
+        style: 'color:#DC2626;border-color:#FCA5A5'
+      }));
+    }
+    if (!isSelf) {
+      card.appendChild(createUserActionButton({ label: 'Enviar reset', action: 'reset', userId: user.id }));
+    }
+    if (user.role !== 'admin' && !isSelf) {
+      card.appendChild(createUserActionButton({
+        label: user.status === 'blocked' ? 'Manter bloqueado' : 'Bloquear', action: 'block', userId: user.id,
+        style: 'color:#DC2626;border-color:#FCA5A5'
+      }));
+    }
+    if (!isSelf) {
+      card.appendChild(createUserActionButton({
+        label: 'Excluir usuário', action: 'delete', userId: user.id, disabled: isLastAdmin,
+        title: isLastAdmin ? 'Não é possível excluir o último administrador' : 'Excluir definitivamente este usuário',
+        style: 'color:#991B1B;border-color:#EF4444;background:#FFF7F7'
+      }));
+    }
+    list.appendChild(card);
+  });
 };
 
 adminApproveUser = async function(userId) {
