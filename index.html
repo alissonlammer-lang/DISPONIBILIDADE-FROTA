@@ -621,6 +621,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
       <div class="admin-controls">
         <input type="text" id="searchWeekInput" placeholder="🔍  Buscar por nome..." oninput="renderAdminWeek()">
         <input type="number" id="filterWeekNumber" placeholder="Nº da semana (ex: 30)" min="1" max="53" oninput="renderAdminWeek()" style="min-width:170px">
+        <div class="mf" style="min-width:245px">
+          <label>Filtrar por Ciclo</label>
+          <div class="cycle-filter">
+            <button class="cf-btn active-all" id="acf-all" onclick="setAdminCycleFilter('all')">Todos</button>
+            <button class="cf-btn" id="acf-AM1" onclick="setAdminCycleFilter('AM1')">AM1</button>
+            <button class="cf-btn" id="acf-CHP" onclick="setAdminCycleFilter('CHP')">CHP</button>
+            <button class="cf-btn" id="acf-PM1" onclick="setAdminCycleFilter('PM1')">PM1</button>
+          </div>
+        </div>
         <button class="btn btn-g" style="font-size:12px;padding:7px 12px" onclick="document.getElementById('filterWeekNumber').value='';renderAdminWeek()">Limpar semana</button>
         <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="exportAllWeekCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
         <span class="rcount" id="weekCount"></span>
@@ -816,6 +825,7 @@ let currentUser=null;
 const fstate={}, wstate={};
 let currentWeekStart=null;
 let activeCycleFilter='all';
+let activeAdminCycleFilter='all';
 let activeCarrierFilter='all'; // 'all' or carrier index
 
 // ---- STORAGE (localStorage-based, no email stored) ----
@@ -1176,6 +1186,17 @@ function setCycleFilter(f){
     if(k===f) btn.classList.add(k==='all'?'active-all':`active-${k.toLowerCase()}`);
   });
   renderWeekUI();
+}
+
+function setAdminCycleFilter(f){
+  activeAdminCycleFilter=f;
+  ['all','AM1','CHP','PM1'].forEach(k=>{
+    const btn=document.getElementById(`acf-${k}`);
+    if(!btn) return;
+    btn.className='cf-btn';
+    if(k===f) btn.classList.add(k==='all'?'active-all':`active-${k.toLowerCase()}`);
+  });
+  renderAdminWeek();
 }
 
 function buildCarrierFilterBtns(){
@@ -1859,37 +1880,84 @@ function exportAllAvailCSV(){
 }
 
 function exportAllWeekCSV(){
-  const recs=loadRecords('frota_week');if(!recs.length){showToast('⚠ Nenhuma semana');return}
+  const recs=loadRecords('frota_week');
+  if(!recs.length){showToast('⚠ Nenhuma semana');return}
+  const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
   const rows=[['Nome','Semana','Enviado em','Transportadora','Modelo','Ciclo','Seg','Ter','Qua','Qui','Sex','Sáb','Dom','Total']];
-  recs.forEach(rec=>{const days=getWeekDays(rec.weekStart);CARRIERS.forEach(c=>VEHICLES.forEach(v=>CYCLES.forEach(cy=>{const vals=days.map(d=>rec.data[c]&&rec.data[c][v]&&rec.data[c][v][d]?rec.data[c][v][d][cy]||0:0);const rt=vals.reduce((a,b)=>a+b,0);if(rt>0)rows.push([rec.name,rec.weekStart,rec.submittedAt,c,v,cy,...vals,rt])})))});
-  dlCSV(rows,'semana_todos');showToast('✓ CSV exportado!');
+  recs.forEach(rec=>{
+    const days=getWeekDays(rec.weekStart);
+    CARRIERS.forEach(c=>VEHICLES.forEach(v=>cycles.forEach(cy=>{
+      const vals=days.map(d=>rec.data[c]&&rec.data[c][v]&&rec.data[c][v][d]?rec.data[c][v][d][cy]||0:0);
+      const rt=vals.reduce((a,b)=>a+b,0);
+      if(rt>0)rows.push([rec.name,rec.weekStart,rec.submittedAt,c,v,cy,...vals,rt]);
+    })));
+  });
+  if(rows.length===1){showToast('⚠ Nenhum dado para o ciclo selecionado');return}
+  const suffix=activeAdminCycleFilter==='all'?'todos':activeAdminCycleFilter.toLowerCase();
+  dlCSV(rows,`semana_${suffix}`);showToast('✓ CSV exportado!');
 }
 
 function exportAllCSV(){exportAllAvailCSV();exportAllWeekCSV();}
 
 function renderAdminWeek(){
-  const recs=loadRecords('frota_week');const s=(document.getElementById('searchWeekInput').value||'').toLowerCase();
+  const recs=loadRecords('frota_week');
+  const s=(document.getElementById('searchWeekInput').value||'').toLowerCase();
   const weekFilter=document.getElementById('filterWeekNumber').value;
-  const f=recs.filter(r=>(r.name||'').toLowerCase().includes(s)&&(!weekFilter||getISOWeek(r.weekStart)===parseInt(weekFilter)));
-  document.getElementById('weekCount').textContent=`${f.length} semana${f.length!==1?'s':''}`;
-  const list=document.getElementById('weekList');list.innerHTML='';
-  if(!f.length){list.innerHTML=`<div class="empty-state">${recs.length===0?'Nenhuma semana salva ainda.':'Sem resultados.'}</div>`;return}
+  const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
+  const cycleLabel=activeAdminCycleFilter==='all'?'Todos os ciclos':activeAdminCycleFilter;
+  const hasCycleData=rec=>Object.values(rec.data||{}).some(carrierData=>
+    Object.values(carrierData||{}).some(vehicleData=>
+      Object.values(vehicleData||{}).some(dayData=>
+        cycles.some(cycle=>(Number(dayData?.[cycle])||0)>0)
+      )
+    )
+  );
+  const f=recs.filter(r=>(r.name||'').toLowerCase().includes(s)&&(!weekFilter||getISOWeek(r.weekStart)===parseInt(weekFilter))&&hasCycleData(r));
+
+  document.getElementById('weekCount').textContent=`${f.length} semana${f.length!==1?'s':''} · ${cycleLabel}`;
+  const list=document.getElementById('weekList');
+  list.innerHTML='';
+  if(!f.length){
+    list.innerHTML=`<div class="empty-state">${recs.length===0?'Nenhuma semana salva ainda.':'Sem resultados para o ciclo selecionado.'}</div>`;
+    return;
+  }
+
   f.forEach((rec,ri)=>{
     const days=getWeekDays(rec.weekStart);
     const wn=getISOWeek(rec.weekStart);
-    const tot=CARRIERS.reduce((s,c)=>s+VEHICLES.reduce((ss,v)=>ss+days.reduce((sss,d)=>sss+CYCLES.reduce((ssss,cy)=>ssss+(rec.data[c]&&rec.data[c][v]&&rec.data[c][v][d]?rec.data[c][v][d][cy]||0:0),0),0),0),0);
+    const tot=CARRIERS.reduce((sum,carrier)=>sum+VEHICLES.reduce((vehicleSum,vehicle)=>vehicleSum+days.reduce((daySum,day)=>daySum+cycles.reduce((cycleSum,cycle)=>cycleSum+(rec.data[carrier]&&rec.data[carrier][vehicle]&&rec.data[carrier][vehicle][day]?rec.data[carrier][vehicle][day][cycle]||0:0),0),0),0),0);
     const at=new Date(rec.submittedAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     const s2=new Date(days[0]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
     const e2=new Date(days[6]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
-    const card=document.createElement('div');card.className='rec-card';const hdr=document.createElement('div');hdr.className='rec-hdr';
-    hdr.innerHTML=`<div class="rec-av" style="background:#16A34A">${esc(ini(rec.name))}</div><div class="rec-info"><div class="rec-name">${esc(rec.name)}</div><div class="rec-meta">${at}</div></div><div class="rec-badges"><span class="bdg" style="background:var(--accent-l);color:var(--accent)">Semana ${wn}</span><span class="bdg bdg-gy">${s2} – ${e2}</span><span class="bdg bdg-gr">${tot} veíc.</span><button class="delbtn" onclick="delWeek(${rec.id},event)">Excluir</button></div><button class="rtoggle open" id="wrt-${ri}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
-    hdr.addEventListener('click',e=>{if(e.target.closest('.delbtn'))return;const b=document.getElementById(`wrb-${ri}`);const bt=document.getElementById(`wrt-${ri}`);b.style.display=b.style.display==='none'?'':'none';bt.classList.toggle('open')});
-    const body=document.createElement('div');body.className='rec-body';body.id=`wrb-${ri}`;
-    let tbl=`<div style="overflow-x:auto"><table class="rec-tbl" style="min-width:600px"><thead><tr><th>Transportadora</th><th>Modelo</th><th>Ciclo</th>${days.map(d=>`<th style="text-align:center">${formatDay(d).short}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead><tbody>`;
-    let wkRows='';
-    Object.keys(rec.data||{}).forEach(c=>visibleVehiclesFor(c).forEach(v=>CYCLES.forEach(cy=>{const vals=days.map(d=>rec.data[c]&&rec.data[c][v]&&rec.data[c][v][d]?rec.data[c][v][d][cy]||0:0);const rt=vals.reduce((a,b)=>a+b,0);if(rt===0)return;wkRows+=`<tr><td style="font-size:11px;color:var(--muted)">${esc(c)}</td><td>${esc(v)}</td><td style="font-size:11px;font-weight:600;color:var(--${cy==='AM1'?'am1':cy==='CHP'?'chp':'pm1'})">${cy}</td>${vals.map(q=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-weight:${q>0?700:400};color:${q>0?'var(--accent)':'var(--muted)'}">${q}</td>`).join('')}<td class="tn">${rt}</td></tr>`})));
-    tbl+=wkRows||`<tr><td colspan="${3+days.length+1}" style="text-align:center;color:var(--muted);padding:16px">Sem dados preenchidos</td></tr>`;
-    tbl+='</tbody></table></div>';body.innerHTML=tbl;card.append(hdr,body);list.appendChild(card);
+    const card=document.createElement('div');
+    card.className='rec-card';
+    const hdr=document.createElement('div');
+    hdr.className='rec-hdr';
+    hdr.innerHTML=`<div class="rec-av" style="background:#16A34A">${esc(ini(rec.name))}</div><div class="rec-info"><div class="rec-name">${esc(rec.name)}</div><div class="rec-meta">${at}</div></div><div class="rec-badges"><span class="bdg" style="background:var(--accent-l);color:var(--accent)">Semana ${wn}</span><span class="bdg bdg-gy">${s2} – ${e2}</span><span class="bdg" style="background:${activeAdminCycleFilter==='all'?'var(--bg)':activeAdminCycleFilter==='AM1'?'var(--am1-l)':activeAdminCycleFilter==='CHP'?'var(--chp-l)':'var(--pm1-l)'};color:${activeAdminCycleFilter==='all'?'var(--muted)':activeAdminCycleFilter==='AM1'?'var(--am1)':activeAdminCycleFilter==='CHP'?'var(--chp)':'var(--pm1)'}">${cycleLabel}</span><span class="bdg bdg-gr">${tot} veíc.</span><button class="delbtn" onclick="delWeek(${rec.id},event)">Excluir</button></div><button class="rtoggle open" id="wrt-${ri}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
+    hdr.addEventListener('click',e=>{
+      if(e.target.closest('.delbtn'))return;
+      const body=document.getElementById(`wrb-${ri}`);
+      const toggle=document.getElementById(`wrt-${ri}`);
+      body.style.display=body.style.display==='none'?'':'none';
+      toggle.classList.toggle('open');
+    });
+
+    const body=document.createElement('div');
+    body.className='rec-body';
+    body.id=`wrb-${ri}`;
+    let table=`<div style="overflow-x:auto"><table class="rec-tbl" style="min-width:600px"><thead><tr><th>Transportadora</th><th>Modelo</th><th>Ciclo</th>${days.map(d=>`<th style="text-align:center">${formatDay(d).short}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead><tbody>`;
+    let rows='';
+    Object.keys(rec.data||{}).forEach(carrier=>visibleVehiclesFor(carrier).forEach(vehicle=>cycles.forEach(cycle=>{
+      const values=days.map(day=>rec.data[carrier]&&rec.data[carrier][vehicle]&&rec.data[carrier][vehicle][day]?rec.data[carrier][vehicle][day][cycle]||0:0);
+      const rowTotal=values.reduce((a,b)=>a+b,0);
+      if(rowTotal===0)return;
+      rows+=`<tr><td style="font-size:11px;color:var(--muted)">${esc(carrier)}</td><td>${esc(vehicle)}</td><td style="font-size:11px;font-weight:600;color:var(--${cycle==='AM1'?'am1':cycle==='CHP'?'chp':'pm1'})">${cycle}</td>${values.map(q=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-weight:${q>0?700:400};color:${q>0?'var(--accent)':'var(--muted)'}">${q}</td>`).join('')}<td class="tn">${rowTotal}</td></tr>`;
+    })));
+    table+=rows||`<tr><td colspan="${3+days.length+1}" style="text-align:center;color:var(--muted);padding:16px">Sem dados preenchidos para ${cycleLabel}</td></tr>`;
+    table+='</tbody></table></div>';
+    body.innerHTML=table;
+    card.append(hdr,body);
+    list.appendChild(card);
   });
 }
 function delWeek(id,e){e.stopPropagation();askConfirm('Excluir?',()=>{const r=loadRecords('frota_week');saveRecords('frota_week',r.filter(x=>x.id!==id));renderAdminWeek();showToast('✓ Excluído')})}
@@ -3386,11 +3454,12 @@ removeCarrierFixedVehicle = function(carrier, vehicle) {
 
 renderAdminUsers = function() {
   const q = (document.getElementById('searchUsersInput').value || '').toLowerCase();
-  const users = DB_CACHE.users.filter(u =>
-    u.name.toLowerCase().includes(q) ||
-    u.email.toLowerCase().includes(q) ||
-    (u.carrier || '').toLowerCase().includes(q)
-  );
+  const users = DB_CACHE.users.filter(u => {
+    const organization = u.role === 'admin' ? 'MELI COMPANI' : (u.carrier || 'Sem transportadora');
+    return u.name.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q) ||
+      organization.toLowerCase().includes(q);
+  });
   const activeAdminCount = DB_CACHE.users.filter(u => u.role === 'admin' && u.status === 'approved').length;
   document.getElementById('usersCount').textContent = `${users.length} usuário${users.length !== 1 ? 's' : ''}`;
   const list = document.getElementById('usersList');
@@ -3410,7 +3479,7 @@ renderAdminUsers = function() {
         <div style="flex:1;min-width:220px">
           <div style="font-weight:700;font-size:13px">${esc(u.name)}${isSelf ? ' <span style="font-size:10px;color:var(--muted);font-weight:600">(você)</span>' : ''}</div>
           <div style="font-size:11px;color:var(--muted)">${esc(u.email)}</div>
-          <div style="font-size:11px;color:var(--muted)">${esc(u.carrier || 'Sem transportadora')}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(u.role === 'admin' ? 'MELI COMPANI' : (u.carrier || 'Sem transportadora'))}</div>
         </div>
         <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${bg};color:${color}">${statusLabel}</span>
         ${u.role !== 'admin' && u.status !== 'approved' ? `<button class="btn btn-p user-db-action" data-action="approve" data-index="${index}" style="font-size:12px;padding:6px 12px">Aprovar</button>` : ''}
@@ -3591,7 +3660,7 @@ delWeek = function(id, event) {
   event?.stopPropagation();
   const identity = WEEK_IDENTITY.get(Number(id));
   if (!identity) return;
-  askConfirm('Excluir os registros desta semana?', async () => {
+  askConfirm('Excluir todos os registros desta semana, em todos os ciclos?', async () => {
     const end = getWeekDays(identity.weekStart)[6];
     try {
       const { error } = await sbClient.from('week_entries').delete()
