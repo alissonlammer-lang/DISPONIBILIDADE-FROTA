@@ -3418,6 +3418,7 @@ renderAdminUsers = function() {
         ${u.role === 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="demote" data-index="${index}" ${isLastAdmin ? 'disabled' : ''} title="${isLastAdmin ? 'Não é possível remover o último administrador' : 'Remover acesso administrativo'}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5;${isLastAdmin ? 'opacity:.45;cursor:not-allowed' : ''}">Remover admin</button>` : ''}
         ${!isSelf ? `<button class="btn btn-s user-db-action" data-action="reset" data-index="${index}" style="font-size:12px;padding:6px 12px">Enviar reset</button>` : ''}
         ${u.role !== 'admin' && !isSelf ? `<button class="btn btn-s user-db-action" data-action="block" data-index="${index}" style="font-size:12px;padding:6px 12px;color:#DC2626;border-color:#FCA5A5">${u.status === 'blocked' ? 'Manter bloqueado' : 'Bloquear'}</button>` : ''}
+        ${!isSelf ? `<button class="btn btn-s user-db-action" data-action="delete" data-index="${index}" ${isLastAdmin ? 'disabled' : ''} title="${isLastAdmin ? 'Não é possível excluir o último administrador' : 'Excluir definitivamente este usuário'}" style="font-size:12px;padding:6px 12px;color:#991B1B;border-color:#EF4444;background:#FFF7F7;${isLastAdmin ? 'opacity:.45;cursor:not-allowed' : ''}">Excluir usuário</button>` : ''}
       </div>`;
   }).join('');
   list.querySelectorAll('.user-db-action').forEach(btn => btn.addEventListener('click', () => {
@@ -3429,6 +3430,7 @@ renderAdminUsers = function() {
     if (btn.dataset.action === 'demote') adminSetUserRole(user.id, false);
     if (btn.dataset.action === 'reset') adminResetUserPwd(user.id);
     if (btn.dataset.action === 'block') adminDeleteUser(user.id);
+    if (btn.dataset.action === 'delete') adminRemoveUserAccount(user.id);
   }));
 };
 
@@ -3478,6 +3480,37 @@ adminDeleteUser = function(userId) {
   });
 };
 
+
+adminRemoveUserAccount = function(userId) {
+  const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
+  if (!user) return;
+
+  if (user.id === currentUser.id) {
+    showToast('⚠ Você não pode excluir sua própria conta');
+    return;
+  }
+
+  const activeAdminCount = DB_CACHE.users.filter(u => u.role === 'admin' && u.status === 'approved').length;
+  if (user.role === 'admin' && user.status === 'approved' && activeAdminCount <= 1) {
+    showToast('⚠ Não é possível excluir o último administrador');
+    return;
+  }
+
+  const warning = `Excluir definitivamente ${user.name} (${user.email})? A conta será removida do login e não poderá mais acessar o sistema. Os registros operacionais já realizados serão preservados.`;
+  askConfirm(warning, async () => {
+    try {
+      const { error } = await sbClient.rpc('admin_delete_user', {
+        p_user_id: user.id
+      });
+      throwIfError(error);
+      await loadAppData();
+      renderAdminUsers();
+      showToast('✓ Usuário excluído definitivamente');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+};
 
 adminSetUserRole = function(userId, makeAdmin) {
   const user = DB_CACHE.users.find(x => x.id === userId || x.name === userId);
