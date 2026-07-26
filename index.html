@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Build de seguranca: Supabase JS fixado em 2.110.8; cabecalhos em vercel.json -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -774,7 +775,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 </div>
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.110.8"></script>
 <script>
 let adminSessionGranted=false;
 let adminSetupPendingEntry=false;
@@ -2543,7 +2544,6 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE
   }
 });
 
-window.frotaSupabase = sbClient;
 window.__FROTA_SUPABASE_ADAPTER_LOADED = true;
 
 const DEFAULT_CARRIER_ORDER = [...CARRIERS];
