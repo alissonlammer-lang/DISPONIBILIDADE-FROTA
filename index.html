@@ -3216,7 +3216,8 @@ requestPasswordReset = async function() {
   }
   setAuthBusy(true);
   try {
-    const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: APP_SITE_URL });
+    const recoveryRedirect = `${APP_SITE_URL}/?mode=recovery`;
+    const { error } = await sbClient.auth.resetPasswordForEmail(email, { redirectTo: recoveryRedirect });
     throwIfError(error);
     authMessage('Enviamos um link de redefinição para o seu e-mail.', false);
   } catch (error) {
@@ -3241,11 +3242,17 @@ doChangePassword = async function() {
     return;
   }
   try {
+    const { data: sessionData, error: sessionError } = await sbClient.auth.getSession();
+    throwIfError(sessionError);
+    if (!sessionData.session) {
+      throw new Error('O link de recuperação expirou ou já foi utilizado. Solicite um novo link.');
+    }
     const { error } = await sbClient.auth.updateUser({ password: p1 });
     throwIfError(error);
     passwordRecoveryMode = false;
     document.getElementById('newPwd1').value = '';
     document.getElementById('newPwd2').value = '';
+    history.replaceState({}, document.title, APP_SITE_URL + '/');
     await sbClient.auth.signOut();
     showScreen('loginScreen');
     authMessage('Senha atualizada. Entre novamente com a nova senha.', false);
@@ -4540,16 +4547,65 @@ renderActiveFleetSnapshot = function() {
   });
 };
 
+function isPasswordRecoveryUrl() {
+  const query = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  return query.get('mode') === 'recovery' ||
+    query.get('type') === 'recovery' ||
+    hash.get('type') === 'recovery';
+}
+
+function showPasswordRecoveryScreen() {
+  passwordRecoveryMode = true;
+  currentUser = null;
+  adminSessionGranted = false;
+  document.querySelector('#pwdChangeScreen h1').textContent = 'Criar nova senha';
+  document.querySelector('#pwdChangeScreen > .login-card > p').textContent = 'Defina uma nova senha para sua conta.';
+  document.getElementById('newPwd1').value = '';
+  document.getElementById('newPwd2').value = '';
+  document.getElementById('errNewPwd1').classList.remove('show');
+  document.getElementById('errNewPwd2').classList.remove('show');
+  showScreen('pwdChangeScreen');
+  setTimeout(() => document.getElementById('newPwd1').focus(), 80);
+}
+
 async function bootstrapSupabaseApp() {
   patchLoginUI();
   installAdminFleetEditor();
   setAuthBusy(true);
+
+  let recoveryDetected = isPasswordRecoveryUrl();
+
+  sbClient.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      recoveryDetected = true;
+      showPasswordRecoveryScreen();
+      return;
+    }
+    if (event === 'SIGNED_OUT' && supabaseBooted && currentUser && !passwordRecoveryMode) {
+      currentUser = null;
+      resetRuntimeState();
+      showScreen('loginScreen');
+    }
+  });
+
   try {
     await loadCatalogs();
     const { data, error } = await sbClient.auth.getSession();
     throwIfError(error);
-    if (data.session?.user) await startAuthenticatedSession(data.session.user);
-    else showScreen('loginScreen');
+
+    if (recoveryDetected) {
+      if (data.session?.user) {
+        showPasswordRecoveryScreen();
+      } else {
+        showScreen('loginScreen');
+        authMessage('O link de recuperação expirou ou já foi utilizado. Solicite um novo link.', true);
+      }
+    } else if (data.session?.user) {
+      await startAuthenticatedSession(data.session.user);
+    } else {
+      showScreen('loginScreen');
+    }
     supabaseBooted = true;
   } catch (error) {
     console.error(error);
@@ -4558,21 +4614,6 @@ async function bootstrapSupabaseApp() {
   } finally {
     setAuthBusy(false);
   }
-
-  sbClient.auth.onAuthStateChange((event, session) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      passwordRecoveryMode = true;
-      document.querySelector('#pwdChangeScreen h1').textContent = 'Criar nova senha';
-      document.querySelector('#pwdChangeScreen > .login-card > p').textContent = 'Defina uma nova senha para sua conta.';
-      showScreen('pwdChangeScreen');
-      setTimeout(() => document.getElementById('newPwd1').focus(), 80);
-    }
-    if (event === 'SIGNED_OUT' && supabaseBooted && currentUser) {
-      currentUser = null;
-      resetRuntimeState();
-      showScreen('loginScreen');
-    }
-  });
 }
 
 bootstrapSupabaseApp();
