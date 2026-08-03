@@ -2330,7 +2330,7 @@ function exportAllJSON(){
     frota_week:loadRecords('frota_week'),
     users:loadUsers(),
     fleet_units:loadFleetUnits(),
-    fleet_crews:loadRecords('fleet_crews'),
+    loading_teams:loadRecords('loading_teams'),
     carrier_fixed_vehicles:loadCarrierFixedVehicles()
   },null,2);
   const blob=new Blob([payload],{type:'application/json'});
@@ -2621,7 +2621,8 @@ const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE
     // Ao atualizar ou abrir o sistema novamente, o login será solicitado.
     persistSession: false,
     autoRefreshToken: true,
-    detectSessionInUrl: true
+    detectSessionInUrl: true,
+    storage: window.sessionStorage
   }
 });
 
@@ -2636,7 +2637,7 @@ const DB_CACHE = {
   vehicle_incoming: [],
   frota_week: [],
   fleet_units: [],
-  fleet_crews: [],
+  loading_teams: [],
   carrier_fixed_vehicles: {}
 };
 const DB_CATALOG = {
@@ -2959,7 +2960,7 @@ async function loadAppData() {
     fetchAllRows('incoming_vehicles', 'id,carrier_id,vehicle_id,quantity,expected_date,note,status,created_by,entered_by,entered_at,created_at,updated_at', 'created_at', false),
     fetchAllRows('week_entries', 'id,carrier_id,vehicle_id,operation_date,cycle,quantity,updated_by,created_at,updated_at', 'operation_date', false),
     fetchAllRows('fleet_units', 'id,carrier_id,vehicle_id,plate,status,note,updated_by,created_at,updated_at', 'created_at', false),
-    fetchOptionalRows('fleet_crews', 'id,fleet_unit_id,carrier_id,plate,vehicle_model,driver_name,driver_status,helper_name,helper_status,note,updated_by,created_at,updated_at', 'updated_at', false)
+    fetchOptionalRows('loading_teams', 'id,fleet_unit_id,carrier_id,plate,vehicle_model,driver_name,driver_status,helper_name,helper_status,note,updated_by,created_at,updated_at', 'updated_at', false)
   ]);
 
   DB_CATALOG.profileNameById.clear();
@@ -3061,11 +3062,11 @@ async function loadAppData() {
   }).filter(Boolean);
 
   const crewStatus = { available: 'disponivel', unavailable: 'indisponivel', off: 'folga', leave: 'afastado', unassigned: 'sem_cadastro' };
-  DB_CACHE.fleet_crews = crewRows.map(r => {
+  DB_CACHE.loading_teams = crewRows.map(r => {
     const carrier = DB_CATALOG.carrierNameById.get(r.carrier_id);
     if (!carrier || !r.plate || !r.vehicle_model) return null;
     return {
-      id: runtimeId('fleet_crew', r.id),
+      id: runtimeId('loading_team', r.id),
       dbId: r.id,
       fleetUnitDbId: r.fleet_unit_id || null,
       carrier,
@@ -4084,8 +4085,8 @@ importJSON = async function(data) {
       }
     }
 
-    if (Array.isArray(data.fleet_crews)) {
-      const rows = data.fleet_crews.map(item => {
+    if (Array.isArray(data.loading_teams)) {
+      const rows = data.loading_teams.map(item => {
         if (!DB_CATALOG.carrierIdByName.has(item.carrier)) return null;
         const plate = String(item.plate || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         const model = cleanImportedText(item.vehicle || item.vehicleModel || '', 120);
@@ -4103,7 +4104,7 @@ importJSON = async function(data) {
         };
       }).filter(Boolean);
       if (rows.length && crewFeatureAvailable) {
-        const { error } = await sbClient.from('fleet_crews').upsert(rows, { onConflict: 'carrier_id,plate' });
+        const { error } = await sbClient.from('loading_teams').upsert(rows, { onConflict: 'carrier_id,plate' });
         throwIfError(error);
         imported += rows.length;
       }
@@ -4327,7 +4328,7 @@ function renderCrewFleetTab() {
   if (!requireLogin()) return;
   crewMigrationMessage('crewMigrationUser');
   const query = (document.getElementById('searchCrewUserInput')?.value || '').trim().toLowerCase();
-  const allCrews = DB_CACHE.fleet_crews
+  const allCrews = DB_CACHE.loading_teams
     .filter(crew => crew.carrier === currentUser.carrier)
     .sort((a,b) => a.vehicle.localeCompare(b.vehicle,'pt-BR') || a.plate.localeCompare(b.plate,'pt-BR'));
   const crews = query ? allCrews.filter(crew => `${crew.plate} ${crew.vehicle} ${crew.driverName} ${crew.helperName}`.toLowerCase().includes(query)) : allCrews;
@@ -4349,7 +4350,7 @@ function populateCrewAdminCarrierFilter() {
 function filteredAdminCrews() {
   const query = (document.getElementById('searchCrewAdminInput')?.value || '').trim().toLowerCase();
   const carrierFilter = document.getElementById('crewAdminCarrierFilter')?.value || 'all';
-  return DB_CACHE.fleet_crews
+  return DB_CACHE.loading_teams
     .filter(crew => carrierFilter === 'all' || crew.carrier === carrierFilter)
     .filter(crew => !query || `${crew.plate} ${crew.vehicle} ${crew.carrier} ${crew.driverName} ${crew.helperName}`.toLowerCase().includes(query))
     .sort((a,b) => a.carrier.localeCompare(b.carrier,'pt-BR') || a.vehicle.localeCompare(b.vehicle,'pt-BR') || a.plate.localeCompare(b.plate,'pt-BR'));
@@ -4372,7 +4373,7 @@ let pendingCrewAdminMode = false;
 function populateCrewVehicleModels() {
   const list = document.getElementById('crewVehicleModels');
   if (!list) return;
-  const names = Array.from(new Set([...VEHICLES, ...DB_CACHE.fleet_crews.map(crew => crew.vehicle)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const names = Array.from(new Set([...VEHICLES, ...DB_CACHE.loading_teams.map(crew => crew.vehicle)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
   list.innerHTML = names.map(name => `<option value="${escAttr(name)}"></option>`).join('');
 }
 
@@ -4383,10 +4384,10 @@ function populateCrewEntryCarriers(selected) {
 
 function openCrewEntryModal(crewRuntimeId, adminMode) {
   if (!crewFeatureAvailable) {
-    showToast('⚠ Execute primeiro o SQL de migração da equipe de volumosos');
+    showToast('⚠ Execute primeiro o SQL configurar_loading_teams_supabase.sql');
     return;
   }
-  const crew = crewRuntimeId == null ? null : DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(crewRuntimeId));
+  const crew = crewRuntimeId == null ? null : DB_CACHE.loading_teams.find(item => Number(item.id) === Number(crewRuntimeId));
   pendingCrewEditId = crew ? crew.id : null;
   pendingCrewAdminMode = !!adminMode;
   document.getElementById('crewEntryTitle').textContent = crew ? 'Editar equipe' : 'Cadastrar equipe';
@@ -4411,7 +4412,7 @@ function closeCrewEntryModal() {
 }
 
 async function saveCrewEntryModal() {
-  const existing = pendingCrewEditId == null ? null : DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(pendingCrewEditId));
+  const existing = pendingCrewEditId == null ? null : DB_CACHE.loading_teams.find(item => Number(item.id) === Number(pendingCrewEditId));
   const carrier = pendingCrewAdminMode ? document.getElementById('crewEntryCarrier').value : currentUser.carrier;
   const plate = normalizeCrewPlate(document.getElementById('crewEntryPlate').value);
   const vehicleModel = document.getElementById('crewEntryModel').value.trim().replace(/\s+/g, ' ');
@@ -4424,7 +4425,7 @@ async function saveCrewEntryModal() {
     errorElement.classList.add('show');
     return;
   }
-  const duplicate = DB_CACHE.fleet_crews.find(item => item.carrier === carrier && item.plate === plate && (!existing || item.dbId !== existing.dbId));
+  const duplicate = DB_CACHE.loading_teams.find(item => item.carrier === carrier && item.plate === plate && (!existing || item.dbId !== existing.dbId));
   if (duplicate) {
     errorElement.textContent = 'Essa placa já possui uma equipe cadastrada nesta transportadora.';
     errorElement.classList.add('show');
@@ -4446,8 +4447,8 @@ async function saveCrewEntryModal() {
   };
   try {
     let result;
-    if (existing) result = await sbClient.from('fleet_crews').update(payload).eq('id', existing.dbId);
-    else result = await sbClient.from('fleet_crews').insert(payload);
+    if (existing) result = await sbClient.from('loading_teams').update(payload).eq('id', existing.dbId);
+    else result = await sbClient.from('loading_teams').insert(payload);
     throwIfError(result.error);
     closeCrewEntryModal();
     await loadAppData();
@@ -4463,11 +4464,11 @@ async function saveCrewEntryModal() {
 }
 
 function deleteCrewEntry(crewRuntimeId, adminMode) {
-  const crew = DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(crewRuntimeId));
+  const crew = DB_CACHE.loading_teams.find(item => Number(item.id) === Number(crewRuntimeId));
   if (!crew) return;
   askConfirm(`Excluir a equipe da placa ${crew.plate}?`, async () => {
     try {
-      const { error } = await sbClient.from('fleet_crews').delete().eq('id', crew.dbId);
+      const { error } = await sbClient.from('loading_teams').delete().eq('id', crew.dbId);
       throwIfError(error);
       await loadAppData();
       if (adminMode) renderAdminCrew(); else renderCrewFleetTab();
