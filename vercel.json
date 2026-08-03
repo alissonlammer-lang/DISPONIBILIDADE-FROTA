@@ -1,263 +1,37 @@
--- ============================================================
--- DISPONIBILIDADE DE FROTA - EQUIPE DE VOLUMOSOS / PORTARIA
--- Execute este arquivo inteiro no SQL Editor do Supabase.
--- Pode ser executado novamente sem duplicar a estrutura.
--- ============================================================
-
-begin;
-
-create extension if not exists pgcrypto;
-
-create table if not exists public.loading_teams (
-  id uuid primary key default gen_random_uuid(),
-  carrier_id uuid not null references public.carriers(id) on delete cascade,
-  fleet_unit_id uuid null references public.fleet_units(id) on delete set null,
-  plate text not null,
-  vehicle_model text not null,
-  driver_name text null,
-  driver_status text not null default 'available',
-  helper_name text null,
-  helper_status text not null default 'available',
-  note text null,
-  updated_by uuid null references public.profiles(id) on delete set null,
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-
--- Compatibilidade com uma loading_teams criada anteriormente com menos colunas.
-alter table public.loading_teams add column if not exists fleet_unit_id uuid null;
-alter table public.loading_teams add column if not exists carrier_id uuid null;
-alter table public.loading_teams add column if not exists plate text null;
-alter table public.loading_teams add column if not exists vehicle_model text null;
-alter table public.loading_teams add column if not exists driver_name text null;
-alter table public.loading_teams add column if not exists driver_status text not null default 'available';
-alter table public.loading_teams add column if not exists helper_name text null;
-alter table public.loading_teams add column if not exists helper_status text not null default 'available';
-alter table public.loading_teams add column if not exists note text null;
-alter table public.loading_teams add column if not exists updated_by uuid null;
-alter table public.loading_teams add column if not exists created_at timestamptz not null default now();
-alter table public.loading_teams add column if not exists updated_at timestamptz not null default now();
-
--- Normalização dos dados já existentes.
-update public.loading_teams
-set
-  plate = upper(regexp_replace(coalesce(plate, ''), '[^A-Za-z0-9]', '', 'g')),
-  vehicle_model = nullif(btrim(vehicle_model), ''),
-  driver_name = nullif(btrim(driver_name), ''),
-  helper_name = nullif(btrim(helper_name), ''),
-  driver_status = coalesce(nullif(driver_status, ''), case when nullif(btrim(driver_name), '') is null then 'unassigned' else 'available' end),
-  helper_status = coalesce(nullif(helper_status, ''), case when nullif(btrim(helper_name), '') is null then 'unassigned' else 'available' end),
-  updated_at = coalesce(updated_at, now()),
-  created_at = coalesce(created_at, now());
-
--- Remove linhas incompletas criadas em testes anteriores.
-delete from public.loading_teams
-where carrier_id is null
-   or plate is null
-   or length(plate) < 5
-   or vehicle_model is null;
-
-alter table public.loading_teams alter column carrier_id set not null;
-alter table public.loading_teams alter column plate set not null;
-alter table public.loading_teams alter column vehicle_model set not null;
-
--- Chaves estrangeiras para instalações antigas.
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_carrier_id_fkey'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_carrier_id_fkey
-      foreign key (carrier_id) references public.carriers(id) on delete cascade;
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_fleet_unit_id_fkey'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_fleet_unit_id_fkey
-      foreign key (fleet_unit_id) references public.fleet_units(id) on delete set null;
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_updated_by_fkey'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_updated_by_fkey
-      foreign key (updated_by) references public.profiles(id) on delete set null;
-  end if;
-end $$;
-
--- Restrições e unicidade.
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_carrier_plate_key'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_carrier_plate_key unique (carrier_id, plate);
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_plate_format_check'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_plate_format_check
-      check (plate ~ '^[A-Z0-9]{5,10}$');
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_driver_status_check'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_driver_status_check
-      check (driver_status in ('available','unavailable','off','leave','unassigned'));
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conrelid = 'public.loading_teams'::regclass
-      and conname = 'loading_teams_helper_status_check'
-  ) then
-    alter table public.loading_teams
-      add constraint loading_teams_helper_status_check
-      check (helper_status in ('available','unavailable','off','leave','unassigned'));
-  end if;
-end $$;
-
-create index if not exists loading_teams_carrier_id_idx
-  on public.loading_teams(carrier_id);
-create index if not exists loading_teams_updated_at_idx
-  on public.loading_teams(updated_at desc);
-create index if not exists loading_teams_plate_idx
-  on public.loading_teams(plate);
-
--- Atualização automática do updated_at.
-create or replace function public.set_loading_teams_updated_at()
-returns trigger
-language plpgsql
-security invoker
-set search_path = public
-as $$
-begin
-  new.updated_at = now();
-  return new;
-end;
-$$;
-
-drop trigger if exists trg_loading_teams_updated_at on public.loading_teams;
-create trigger trg_loading_teams_updated_at
-before update on public.loading_teams
-for each row execute function public.set_loading_teams_updated_at();
-
--- Permissões básicas.
-grant usage on schema public to authenticated;
-grant select, insert, update, delete on table public.loading_teams to authenticated;
-revoke all on table public.loading_teams from anon;
-
--- RLS: admin vê tudo; usuário comum somente a própria transportadora.
-alter table public.loading_teams enable row level security;
-alter table public.loading_teams force row level security;
-
-drop policy if exists loading_teams_select_policy on public.loading_teams;
-drop policy if exists loading_teams_insert_policy on public.loading_teams;
-drop policy if exists loading_teams_update_policy on public.loading_teams;
-drop policy if exists loading_teams_delete_policy on public.loading_teams;
-drop policy if exists loading_teams_read on public.loading_teams;
-drop policy if exists loading_teams_insert on public.loading_teams;
-drop policy if exists loading_teams_update on public.loading_teams;
-drop policy if exists loading_teams_admin_delete on public.loading_teams;
-
-create policy loading_teams_select_policy
-on public.loading_teams
-for select
-to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'approved'
-      and (p.role = 'admin' or p.carrier_id = loading_teams.carrier_id)
-  )
-);
-
-create policy loading_teams_insert_policy
-on public.loading_teams
-for insert
-to authenticated
-with check (
-  updated_by = auth.uid()
-  and exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'approved'
-      and (p.role = 'admin' or p.carrier_id = loading_teams.carrier_id)
-  )
-);
-
-create policy loading_teams_update_policy
-on public.loading_teams
-for update
-to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'approved'
-      and (p.role = 'admin' or p.carrier_id = loading_teams.carrier_id)
-  )
-)
-with check (
-  updated_by = auth.uid()
-  and exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'approved'
-      and (p.role = 'admin' or p.carrier_id = loading_teams.carrier_id)
-  )
-);
-
-create policy loading_teams_delete_policy
-on public.loading_teams
-for delete
-to authenticated
-using (
-  exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.status = 'approved'
-      and (p.role = 'admin' or p.carrier_id = loading_teams.carrier_id)
-  )
-);
-
-comment on table public.loading_teams is
-'Equipes de motorista e ajudante liberadas para carregamento e portaria.';
-
--- Atualiza o cache do PostgREST/Supabase.
-notify pgrst, 'reload schema';
-
-commit;
-
--- Conferência final: deve retornar public | loading_teams.
-select table_schema, table_name
-from information_schema.tables
-where table_schema = 'public'
-  and table_name = 'loading_teams';
+{
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; connect-src 'self' https://tubjquxufgjyhybqvdqs.supabase.co wss://tubjquxufgjyhybqvdqs.supabase.co; upgrade-insecure-requests"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=63072000; includeSubDomains; preload"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        },
+        {
+          "key": "Cross-Origin-Opener-Policy",
+          "value": "same-origin"
+        }
+      ]
+    }
+  ]
+}
