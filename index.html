@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; connect-src 'self' https://tubjquxufgjyhybqvdqs.supabase.co wss://tubjquxufgjyhybqvdqs.supabase.co; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; connect-src 'self' https://tubjquxufgjyhybqvdqs.supabase.co wss://tubjquxufgjyhybqvdqs.supabase.co; upgrade-insecure-requests">
 <title>Disponibilidade de Frota</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
@@ -283,29 +283,29 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
 .crew-kpi{background:#fff;border:1px solid var(--border);border-radius:11px;padding:12px 14px}
 .crew-kpi-label{font-size:10.5px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
 .crew-kpi-value{font-family:'DM Mono',monospace;font-size:20px;font-weight:700;margin-top:4px;color:var(--text)}
-.crew-grid{display:flex;flex-direction:column;gap:12px}
-.crew-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.crew-card.ready{border-color:#86EFAC;box-shadow:0 0 0 2px rgba(22,163,74,.08)}
-.crew-card-head{padding:12px 16px;background:#FAFBFC;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.crew-plate{font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:var(--text);background:var(--accent-l);padding:5px 10px;border-radius:7px}
-.crew-model{font-size:12px;font-weight:700;flex:1;min-width:180px}
+.crew-grid{display:flex;flex-direction:column;gap:10px}
+.crew-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:13px 15px;display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+.crew-card.complete{border-color:#86EFAC;box-shadow:0 0 0 2px rgba(22,163,74,.07)}
+.crew-plate{font-family:'DM Mono',monospace;font-size:14px;font-weight:800;color:var(--text);background:var(--accent-l);padding:6px 10px;border-radius:7px;min-width:92px;text-align:center}
+.crew-model{font-size:12px;font-weight:700;min-width:150px;flex:1}
 .crew-carrier{font-size:10.5px;color:var(--muted);margin-top:2px}
-.crew-body{padding:14px 16px;display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px}
-.crew-person{border:1px solid var(--border);border-radius:10px;padding:11px 12px;background:#fff}
-.crew-person-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:9px;color:var(--muted)}
-.crew-field{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
-.crew-field:last-child{margin-bottom:0}
-.crew-field label{font-size:10.5px;font-weight:700;color:var(--muted)}
-.crew-field input,.crew-field select{font-family:'Inter',sans-serif;font-size:12px;padding:8px 9px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--text);outline:none;width:100%}
-.crew-field input:focus,.crew-field select:focus{border-color:var(--border-focus);box-shadow:0 0 0 2px var(--accent-l)}
-.crew-footer{padding:0 16px 14px;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
-.crew-note{flex:1;min-width:230px}
+.crew-people{display:grid;grid-template-columns:repeat(2,minmax(170px,1fr));gap:8px;flex:2;min-width:360px}
+.crew-person-display{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:#FAFBFC}
+.crew-person-display span{display:block;font-size:9.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+.crew-person-display b{font-size:12px;color:var(--text)}
+.crew-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-left:auto}
 .crew-status{font-size:10.5px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap}
 .crew-ready{background:var(--green-l);color:var(--green)}
 .crew-incomplete{background:var(--pm1-l);color:var(--pm1)}
-.crew-unavailable{background:#FEE2E2;color:#DC2626}
 .crew-migration-warning{background:#FFF7ED;border:1px solid #FDBA74;color:#9A3412;border-radius:10px;padding:12px 14px;font-size:12px;line-height:1.5;margin-bottom:14px}
-@media(max-width:760px){.crew-body{grid-template-columns:1fr}.crew-footer{align-items:stretch}.crew-footer .btn{justify-content:center}}
+.crew-form-grid{display:grid;grid-template-columns:repeat(2,minmax(190px,1fr));gap:10px}
+.crew-form-grid .field{gap:4px}
+.crew-form-grid select{font-family:'Inter',sans-serif;font-size:13px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text);outline:none}
+.compare-gap{font-family:'DM Mono',monospace;font-weight:700}
+.compare-positive{color:var(--green)}
+.compare-negative{color:#DC2626}
+.compare-neutral{color:var(--muted)}
+@media(max-width:760px){.crew-people{grid-template-columns:1fr;min-width:100%}.crew-actions{margin-left:0;width:100%}.crew-actions .btn{flex:1;justify-content:center}.crew-form-grid{grid-template-columns:1fr}}
 
 /* MODAL */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;display:none;align-items:center;justify-content:center}
@@ -428,6 +428,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="tab-bar">
     <div class="tab-item active" onclick="switchTab('tabAvail')" id="ttAvail">Disponibilidade</div>
     <div class="tab-item" onclick="switchTab('tabWeek')" id="ttWeek">Visão Semanal</div>
+    <div class="tab-item" onclick="switchTab('tabCompareUser')" id="ttCompareUser">Semana x Semana</div>
     <div class="tab-item" onclick="switchTab('tabFixed')" id="ttFixed">Frota Fixa</div>
     <div class="tab-item" onclick="switchTab('tabCrew')" id="ttCrew">Equipe Volumosos</div>
   </div>
@@ -520,6 +521,38 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     </div>
   </div>
 
+  <!-- TAB: SEMANA X SEMANA - TRANSPORTADORA -->
+  <div id="tabCompareUser" class="tab-panel">
+    <div class="page-main">
+      <div class="week-controls">
+        <div class="mf">
+          <label>Semana de Referência</label>
+          <div class="week-nav">
+            <button class="week-nav-btn" onclick="shiftUserCompareWeek(-1)" title="Semana anterior"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <div class="week-label" id="userCompareWeekLabel">—</div>
+            <button class="week-nav-btn" onclick="shiftUserCompareWeek(1)" title="Próxima semana"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div class="meta-right">
+          <button class="btn btn-s" onclick="exportUserCompareCSV()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar comparativo</button>
+        </div>
+      </div>
+      <div class="crew-summary" id="userCompareSummary"></div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+        <h2 style="font-size:14px;margin-bottom:12px">Comparativo por Modelo</h2>
+        <div style="overflow-x:auto"><table class="stbl"><thead><tr><th>Modelo</th><th style="text-align:right">Semana Atual</th><th style="text-align:right">Semana Anterior</th><th style="text-align:right">Gap</th><th style="text-align:right">Variação</th></tr></thead><tbody id="userCompareModelBody"></tbody></table></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:16px">
+        <h2 style="font-size:14px;margin-bottom:12px">Comparativo por Ciclo</h2>
+        <div style="overflow-x:auto"><table class="stbl"><thead><tr><th>Ciclo</th><th style="text-align:right">Semana Atual</th><th style="text-align:right">Semana Anterior</th><th style="text-align:right">Gap</th><th style="text-align:right">Variação</th></tr></thead><tbody id="userCompareCycleBody"></tbody></table></div>
+      </div>
+      <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:16px 18px">
+        <h2 style="font-size:14px;margin-bottom:12px">Comparativo Diário</h2>
+        <div style="overflow-x:auto"><table class="stbl"><thead><tr><th>Dia</th><th style="text-align:right">Semana Atual</th><th style="text-align:right">Semana Anterior</th><th style="text-align:right">Gap</th><th style="text-align:right">Variação</th></tr></thead><tbody id="userCompareDayBody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+
   <!-- TAB: FROTA FIXA -->
   <div id="tabFixed" class="tab-panel">
     <div class="page-main">
@@ -534,10 +567,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div id="tabCrew" class="tab-panel">
     <div class="page-main">
       <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px">
-        <h2 style="font-size:14px;margin-bottom:5px">Motorista e Ajudante por Placa</h2>
-        <p style="font-size:12px;color:var(--muted);line-height:1.5">Cadastre a equipe vinculada a cada placa da frota de volumosos. Esta área mostra somente veículos dos modelos <b>VUC</b> e <b>Van</b>. A placa será considerada com equipe completa quando motorista e ajudante estiverem disponíveis.</p>
+        <h2 style="font-size:14px;margin-bottom:5px">Equipe de Volumosos para Liberação na Portaria</h2>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5">Cadastre diretamente a <b>placa</b>, o <b>modelo do veículo</b>, o <b>motorista</b> e o <b>ajudante</b>. O cadastro é independente da Frota Fixa e aceita VUC normal, Van e outros veículos que necessitem de ajudante.</p>
       </div>
       <div id="crewMigrationUser"></div>
+      <div class="admin-controls">
+        <input type="text" id="searchCrewUserInput" placeholder="🔍  Buscar placa, modelo, motorista ou ajudante..." oninput="renderCrewFleetTab()" style="min-width:320px">
+        <button class="btn btn-p" onclick="openCrewEntryModal(null,false)">+ Cadastrar equipe</button>
+        <span class="rcount" id="crewUserCount"></span>
+      </div>
       <div class="crew-summary" id="crewSummary"></div>
       <div class="crew-grid" id="crewFleetGrid"></div>
     </div>
@@ -576,6 +614,42 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
     <div style="display:flex;gap:8px;margin-top:14px">
       <button class="btn btn-g" style="flex:1" onclick="closeFixedAddModal()">Cancelar</button>
       <button class="btn btn-p" style="flex:1" onclick="confirmAddFleetUnit()">Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CADASTRO DE EQUIPE DE VOLUMOSOS -->
+<div class="modal-ov" id="crewEntryModal">
+  <div class="modal" style="max-width:570px">
+    <h2 id="crewEntryTitle">Cadastrar equipe</h2>
+    <p>Informe os dados utilizados para identificação e liberação da equipe na portaria.</p>
+    <div class="crew-form-grid">
+      <div class="field" id="crewCarrierField" style="display:none">
+        <label>Transportadora</label>
+        <select id="crewEntryCarrier"></select>
+      </div>
+      <div class="field">
+        <label>Placa</label>
+        <input type="text" id="crewEntryPlate" maxlength="10" placeholder="Ex: ABC1D23" style="text-transform:uppercase">
+      </div>
+      <div class="field">
+        <label>Modelo do veículo</label>
+        <input type="text" id="crewEntryModel" maxlength="120" list="crewVehicleModels" placeholder="Ex: VUC, Van, HR, Fiorino...">
+        <datalist id="crewVehicleModels"></datalist>
+      </div>
+      <div class="field">
+        <label>Motorista</label>
+        <input type="text" id="crewEntryDriver" maxlength="120" placeholder="Nome completo do motorista">
+      </div>
+      <div class="field">
+        <label>Ajudante</label>
+        <input type="text" id="crewEntryHelper" maxlength="120" placeholder="Nome completo do ajudante">
+      </div>
+    </div>
+    <div class="merr" id="crewEntryErr">Preencha todos os campos corretamente.</div>
+    <div class="mact" style="margin-top:14px">
+      <button class="mbtn-c" onclick="closeCrewEntryModal()">Cancelar</button>
+      <button class="mbtn-ok" id="crewEntrySaveBtn" onclick="saveCrewEntryModal()">Salvar equipe</button>
     </div>
   </div>
 </div>
@@ -715,12 +789,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   <div id="adTabCrew" class="tab-panel">
     <div class="admin-main">
       <div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:16px">
-        <h2 style="font-size:14px;margin-bottom:5px">Equipe da Frota de Volumosos</h2>
-        <p style="font-size:12px;color:var(--muted);line-height:1.5">Visualize e ajuste motorista e ajudante vinculados às placas VUC e Van de todas as transportadoras.</p>
+        <h2 style="font-size:14px;margin-bottom:5px">Equipe de Volumosos - Controle de Portaria</h2>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5">Consulte e ajuste as equipes cadastradas por todas as transportadoras. O relatório de portaria pode ser impresso ou salvo em PDF pelo navegador.</p>
       </div>
       <div id="crewMigrationAdmin"></div>
       <div class="admin-controls">
-        <input type="text" id="searchCrewAdminInput" placeholder="🔍  Buscar placa, motorista, ajudante ou MLP..." oninput="renderAdminCrew()" style="min-width:320px">
+        <input type="text" id="searchCrewAdminInput" placeholder="🔍  Buscar placa, modelo, motorista, ajudante ou MLP..." oninput="renderAdminCrew()" style="min-width:320px">
+        <select id="crewAdminCarrierFilter" onchange="renderAdminCrew()" style="font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;min-width:210px"></select>
+        <button class="btn btn-p" onclick="openCrewEntryModal(null,true)">+ Cadastrar equipe</button>
+        <button class="btn btn-s" onclick="printCrewGateReport()">🖨 Imprimir / Salvar PDF</button>
         <span class="rcount" id="crewAdminCount"></span>
       </div>
       <div class="crew-summary" id="adminCrewSummary"></div>
@@ -987,9 +1064,10 @@ function showScreen(id){
 function switchTab(id){
   document.querySelectorAll('#formScreen .tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
-  ['ttAvail','ttWeek','ttFixed','ttCrew'].forEach(t=>document.getElementById(t).classList.remove('active'));
-  document.getElementById({tabAvail:'ttAvail',tabWeek:'ttWeek',tabFixed:'ttFixed',tabCrew:'ttCrew'}[id]).classList.add('active');
+  ['ttAvail','ttWeek','ttCompareUser','ttFixed','ttCrew'].forEach(t=>document.getElementById(t).classList.remove('active'));
+  document.getElementById({tabAvail:'ttAvail',tabWeek:'ttWeek',tabCompareUser:'ttCompareUser',tabFixed:'ttFixed',tabCrew:'ttCrew'}[id]).classList.add('active');
   if(id==='tabWeek') renderWeekUI();
+  if(id==='tabCompareUser') renderUserCompare();
   if(id==='tabFixed') renderFixedFleetTab();
   if(id==='tabCrew') renderCrewFleetTab();
 }
@@ -1096,6 +1174,7 @@ function enterApp(name,carrier){
   const now=new Date();
   document.getElementById('headerDate').textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
   currentWeekStart=getMondayOf(now);
+  userCompareWeekStart=getMondayOf(now);
   activeCarrierFilter='all';
   initStates(); buildUI(); updateSummary();
   populateIncomingVehicleSelect(); renderIncomingList();
@@ -2538,7 +2617,9 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_EfRK2GSEhvuXlePy42j3XQ_It5tjTd5
 const APP_SITE_URL = 'https://disponibilidade-frota-vercel.vercel.app';
 const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    persistSession: true,
+    // A sessão existe somente enquanto esta página estiver aberta.
+    // Ao atualizar ou abrir o sistema novamente, o login será solicitado.
+    persistSession: false,
     autoRefreshToken: true,
     detectSessionInUrl: true
   }
@@ -2788,9 +2869,9 @@ async function fetchOptionalRows(table, columns = '*', orderColumn = null, ascen
     return await fetchAllRows(table, columns, orderColumn, ascending);
   } catch (error) {
     const raw = String(error?.message || error || '').toLowerCase();
-    if (error?.code === '42P01' || error?.code === 'PGRST205' || raw.includes('could not find the table') || raw.includes('does not exist')) {
+    if (error?.code === '42P01' || error?.code === '42703' || error?.code === 'PGRST205' || raw.includes('could not find the table') || raw.includes('does not exist') || raw.includes('column')) {
       crewFeatureAvailable = false;
-      crewFeatureError = 'Execute o arquivo SQL de configuração da equipe de volumosos no Supabase para liberar este recurso.';
+      crewFeatureError = 'Execute o arquivo 05_migrar_equipes_independentes.sql no Supabase para liberar este recurso.';
       return [];
     }
     throw error;
@@ -2878,7 +2959,7 @@ async function loadAppData() {
     fetchAllRows('incoming_vehicles', 'id,carrier_id,vehicle_id,quantity,expected_date,note,status,created_by,entered_by,entered_at,created_at,updated_at', 'created_at', false),
     fetchAllRows('week_entries', 'id,carrier_id,vehicle_id,operation_date,cycle,quantity,updated_by,created_at,updated_at', 'operation_date', false),
     fetchAllRows('fleet_units', 'id,carrier_id,vehicle_id,plate,status,note,updated_by,created_at,updated_at', 'created_at', false),
-    fetchOptionalRows('fleet_crews', 'id,fleet_unit_id,carrier_id,driver_name,driver_status,helper_name,helper_status,note,updated_by,created_at,updated_at', 'updated_at', false)
+    fetchOptionalRows('fleet_crews', 'id,fleet_unit_id,carrier_id,plate,vehicle_model,driver_name,driver_status,helper_name,helper_status,note,updated_by,created_at,updated_at', 'updated_at', false)
   ]);
 
   DB_CATALOG.profileNameById.clear();
@@ -2980,18 +3061,17 @@ async function loadAppData() {
   }).filter(Boolean);
 
   const crewStatus = { available: 'disponivel', unavailable: 'indisponivel', off: 'folga', leave: 'afastado', unassigned: 'sem_cadastro' };
-  const unitByDbId = new Map(DB_CACHE.fleet_units.map(unit => [unit.dbId, unit]));
   DB_CACHE.fleet_crews = crewRows.map(r => {
-    const unit = unitByDbId.get(r.fleet_unit_id);
-    if (!unit) return null;
+    const carrier = DB_CATALOG.carrierNameById.get(r.carrier_id);
+    if (!carrier || !r.plate || !r.vehicle_model) return null;
     return {
       id: runtimeId('fleet_crew', r.id),
       dbId: r.id,
-      fleetUnitId: unit.id,
-      fleetUnitDbId: r.fleet_unit_id,
-      carrier: unit.carrier,
-      vehicle: unit.vehicle,
-      plate: unit.plate,
+      fleetUnitDbId: r.fleet_unit_id || null,
+      carrier,
+      carrierId: r.carrier_id,
+      vehicle: r.vehicle_model,
+      plate: r.plate,
       driverName: r.driver_name || '',
       driverStatus: crewStatus[r.driver_status] || 'sem_cadastro',
       helperName: r.helper_name || '',
@@ -3062,6 +3142,7 @@ function openUserApplication() {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
   currentWeekStart = getMondayOf(now);
+  userCompareWeekStart = getMondayOf(now);
   activeCarrierFilter = 'all';
   initStates();
   buildUI();
@@ -3294,6 +3375,7 @@ async function refreshFromSupabase() {
       buildCarrierFilterBtns();
       const activeTab = document.querySelector('#formScreen .tab-panel.active')?.id || 'tabAvail';
       if (activeTab === 'tabWeek') renderWeekUI();
+      if (activeTab === 'tabCompareUser') renderUserCompare();
       if (activeTab === 'tabFixed') renderFixedFleetTab();
       if (activeTab === 'tabCrew') renderCrewFleetTab();
     } else if (document.getElementById('adminScreen').classList.contains('active')) {
@@ -4004,22 +4086,24 @@ importJSON = async function(data) {
 
     if (Array.isArray(data.fleet_crews)) {
       const rows = data.fleet_crews.map(item => {
-        const unit = DB_CACHE.fleet_units.find(u => u.plate === item.plate && u.carrier === item.carrier);
-        if (!unit) return null;
-        const statusToDb = value => CREW_STATUSES[value]?.db || 'unassigned';
+        if (!DB_CATALOG.carrierIdByName.has(item.carrier)) return null;
+        const plate = String(item.plate || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const model = cleanImportedText(item.vehicle || item.vehicleModel || '', 120);
+        if (plate.length < 5 || !model) return null;
         return {
-          fleet_unit_id: unit.dbId,
-          carrier_id: carrierId(unit.carrier),
+          carrier_id: carrierId(item.carrier),
+          plate,
+          vehicle_model: model,
           driver_name: cleanImportedText(item.driverName || '', 120) || null,
-          driver_status: statusToDb(item.driverStatus),
+          driver_status: item.driverName ? 'available' : 'unassigned',
           helper_name: cleanImportedText(item.helperName || '', 120) || null,
-          helper_status: statusToDb(item.helperStatus),
-          note: cleanImportedText(item.note || '', 500) || null,
+          helper_status: item.helperName ? 'available' : 'unassigned',
+          note: null,
           updated_by: currentUser.id
         };
       }).filter(Boolean);
       if (rows.length && crewFeatureAvailable) {
-        const { error } = await sbClient.from('fleet_crews').upsert(rows, { onConflict: 'fleet_unit_id' });
+        const { error } = await sbClient.from('fleet_crews').upsert(rows, { onConflict: 'carrier_id,plate' });
         throwIfError(error);
         imported += rows.length;
       }
@@ -4086,177 +4170,334 @@ importJSON = async function(data) {
 
 
 
+/* ===================== SEMANA X SEMANA - TRANSPORTADORA ===================== */
+let userCompareWeekStart = null;
+
+function shiftUserCompareWeek(direction) {
+  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  const date = new Date(`${userCompareWeekStart}T12:00:00`);
+  date.setDate(date.getDate() + direction * 7);
+  userCompareWeekStart = getMondayOf(date);
+  renderUserCompare();
+}
+
+function carrierWeekSnapshot(carrier, weekStart) {
+  const days = getWeekDays(weekStart);
+  const record = DB_CACHE.frota_week.find(item => item.weekStart === weekStart && item.data?.[carrier]);
+  const snapshot = {
+    total: 0,
+    byModel: {},
+    byCycle: Object.fromEntries(CYCLES.map(cycle => [cycle, 0])),
+    byDay: Object.fromEntries(days.map(day => [day, 0]))
+  };
+  const carrierData = record?.data?.[carrier] || {};
+  Object.entries(carrierData).forEach(([vehicle, dates]) => {
+    Object.entries(dates || {}).forEach(([day, cycles]) => {
+      Object.entries(cycles || {}).forEach(([cycle, rawQuantity]) => {
+        const quantity = Number(rawQuantity) || 0;
+        snapshot.total += quantity;
+        snapshot.byModel[vehicle] = (snapshot.byModel[vehicle] || 0) + quantity;
+        snapshot.byCycle[cycle] = (snapshot.byCycle[cycle] || 0) + quantity;
+        snapshot.byDay[day] = (snapshot.byDay[day] || 0) + quantity;
+      });
+    });
+  });
+  return snapshot;
+}
+
+function compareVariation(current, previous) {
+  if (previous === 0) return current > 0 ? 'Novo' : '—';
+  return `${(((current - previous) / previous) * 100).toFixed(1).replace('.', ',')}%`;
+}
+
+function compareClass(gap) {
+  return gap > 0 ? 'compare-positive' : gap < 0 ? 'compare-negative' : 'compare-neutral';
+}
+
+function compareRow(label, current, previous) {
+  const gap = current - previous;
+  return `<tr><td class="sc">${esc(label)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${current}</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${previous}</td><td style="text-align:right" class="compare-gap ${compareClass(gap)}">${gap > 0 ? '+' : ''}${gap}</td><td style="text-align:right" class="compare-gap ${compareClass(gap)}">${compareVariation(current, previous)}</td></tr>`;
+}
+
+function renderUserCompare() {
+  if (!currentUser?.carrier) return;
+  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  const previousWeekStart = prevWeekOf(userCompareWeekStart);
+  const current = carrierWeekSnapshot(currentUser.carrier, userCompareWeekStart);
+  const previous = carrierWeekSnapshot(currentUser.carrier, previousWeekStart);
+  const gap = current.total - previous.total;
+  const days = getWeekDays(userCompareWeekStart);
+  const previousDays = getWeekDays(previousWeekStart);
+  const startLabel = new Date(`${days[0]}T12:00:00`).toLocaleDateString('pt-BR', {day:'2-digit', month:'short'});
+  const endLabel = new Date(`${days[6]}T12:00:00`).toLocaleDateString('pt-BR', {day:'2-digit', month:'short', year:'numeric'});
+  document.getElementById('userCompareWeekLabel').textContent = `Semana ${getISOWeek(userCompareWeekStart)} · ${startLabel} – ${endLabel}`;
+  document.getElementById('userCompareSummary').innerHTML = `
+    <div class="crew-kpi"><div class="crew-kpi-label">Semana Atual</div><div class="crew-kpi-value" style="color:var(--accent)">${current.total}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Semana Anterior</div><div class="crew-kpi-value">${previous.total}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Gap</div><div class="crew-kpi-value ${compareClass(gap)}">${gap > 0 ? '+' : ''}${gap}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Variação</div><div class="crew-kpi-value ${compareClass(gap)}">${compareVariation(current.total, previous.total)}</div></div>`;
+
+  const models = Array.from(new Set([...Object.keys(current.byModel), ...Object.keys(previous.byModel)])).sort((a, b) => (current.byModel[b] || 0) - (current.byModel[a] || 0) || a.localeCompare(b, 'pt-BR'));
+  document.getElementById('userCompareModelBody').innerHTML = models.length
+    ? models.map(model => compareRow(model, current.byModel[model] || 0, previous.byModel[model] || 0)).join('')
+    : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:18px">Ainda não existem dados nas semanas selecionadas.</td></tr>';
+  document.getElementById('userCompareCycleBody').innerHTML = CYCLES.map(cycle => compareRow(cycle, current.byCycle[cycle] || 0, previous.byCycle[cycle] || 0)).join('');
+  document.getElementById('userCompareDayBody').innerHTML = days.map((day, index) => {
+    const label = new Date(`${day}T12:00:00`).toLocaleDateString('pt-BR', {weekday:'long'});
+    const normalized = label.charAt(0).toUpperCase() + label.slice(1);
+    return compareRow(normalized, current.byDay[day] || 0, previous.byDay[previousDays[index]] || 0);
+  }).join('');
+}
+
+function exportUserCompareCSV() {
+  if (!currentUser?.carrier) return;
+  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  const previousWeekStart = prevWeekOf(userCompareWeekStart);
+  const current = carrierWeekSnapshot(currentUser.carrier, userCompareWeekStart);
+  const previous = carrierWeekSnapshot(currentUser.carrier, previousWeekStart);
+  const rows = [['Transportadora','Semana Atual','Semana Anterior','Categoria','Item','Atual','Anterior','Gap','Variação']];
+  const models = Array.from(new Set([...Object.keys(current.byModel), ...Object.keys(previous.byModel)])).sort();
+  models.forEach(model => {
+    const cur = current.byModel[model] || 0, prev = previous.byModel[model] || 0;
+    rows.push([currentUser.carrier,userCompareWeekStart,previousWeekStart,'Modelo',model,cur,prev,cur-prev,compareVariation(cur,prev)]);
+  });
+  CYCLES.forEach(cycle => {
+    const cur = current.byCycle[cycle] || 0, prev = previous.byCycle[cycle] || 0;
+    rows.push([currentUser.carrier,userCompareWeekStart,previousWeekStart,'Ciclo',cycle,cur,prev,cur-prev,compareVariation(cur,prev)]);
+  });
+  const days = getWeekDays(userCompareWeekStart), previousDays = getWeekDays(previousWeekStart);
+  days.forEach((day,index) => {
+    const label = new Date(`${day}T12:00:00`).toLocaleDateString('pt-BR',{weekday:'long'});
+    const cur = current.byDay[day] || 0, prev = previous.byDay[previousDays[index]] || 0;
+    rows.push([currentUser.carrier,userCompareWeekStart,previousWeekStart,'Dia',label,cur,prev,cur-prev,compareVariation(cur,prev)]);
+  });
+  dlCSV(rows, `comparativo_${currentUser.carrier.replace(/\s+/g,'_')}_${userCompareWeekStart}`);
+  showToast('✓ Comparativo exportado!');
+}
+
 /* ===================== EQUIPE DA FROTA DE VOLUMOSOS ===================== */
-const CREW_STATUSES = {
-  disponivel: { label: 'Disponível', db: 'available', css: 'crew-ready' },
-  indisponivel: { label: 'Indisponível', db: 'unavailable', css: 'crew-unavailable' },
-  folga: { label: 'Folga', db: 'off', css: 'crew-incomplete' },
-  afastado: { label: 'Afastado', db: 'leave', css: 'crew-unavailable' },
-  sem_cadastro: { label: 'Sem cadastro', db: 'unassigned', css: 'crew-incomplete' }
-};
-
-function isVoluminousCrewVehicle(vehicle) {
-  return /(^|\s)(vuc|van)(\s|$)/i.test(String(vehicle || '')) || /large\s+van/i.test(String(vehicle || ''));
-}
-
-function crewForUnit(unitId) {
-  return DB_CACHE.fleet_crews.find(crew => Number(crew.fleetUnitId) === Number(unitId)) || null;
-}
-
-function crewStatusOptions(selected) {
-  return Object.entries(CREW_STATUSES).map(([value, meta]) =>
-    `<option value="${value}"${value === selected ? ' selected' : ''}>${meta.label}</option>`
-  ).join('');
-}
-
-function crewReady(unit, crew) {
-  return unit.status === 'disponivel' && crew?.driverStatus === 'disponivel' && crew?.helperStatus === 'disponivel' && !!crew.driverName && !!crew.helperName;
+function normalizeCrewPlate(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
 }
 
 function crewMigrationMessage(targetId) {
   const target = document.getElementById(targetId);
   if (!target) return;
-  target.innerHTML = crewFeatureAvailable ? '' : `<div class="crew-migration-warning"><b>Configuração pendente:</b> ${esc(crewFeatureError || 'A tabela fleet_crews ainda não existe no Supabase.')}</div>`;
+  target.innerHTML = crewFeatureAvailable ? '' : `<div class="crew-migration-warning"><b>Configuração pendente:</b> ${esc(crewFeatureError || 'Execute o arquivo 05_migrar_equipes_independentes.sql no Supabase.')}</div>`;
 }
 
-function crewSummaryHtml(units) {
-  const crews = units.map(unit => ({ unit, crew: crewForUnit(unit.id) }));
-  const drivers = crews.filter(x => x.crew?.driverStatus === 'disponivel' && x.crew?.driverName).length;
-  const helpers = crews.filter(x => x.crew?.helperStatus === 'disponivel' && x.crew?.helperName).length;
-  const complete = crews.filter(x => crewReady(x.unit, x.crew)).length;
-  const unavailable = crews.filter(x => x.unit.status !== 'disponivel' || x.crew?.driverStatus === 'indisponivel' || x.crew?.driverStatus === 'afastado').length;
+function crewSummaryHtml(crews) {
+  const drivers = crews.filter(crew => crew.driverName).length;
+  const helpers = crews.filter(crew => crew.helperName).length;
+  const complete = crews.filter(crew => crew.driverName && crew.helperName).length;
+  const pending = crews.length - complete;
   return `
-    <div class="crew-kpi"><div class="crew-kpi-label">Placas VUC/Van</div><div class="crew-kpi-value">${units.length}</div></div>
-    <div class="crew-kpi"><div class="crew-kpi-label">Drivers disponíveis</div><div class="crew-kpi-value" style="color:var(--accent)">${drivers}</div></div>
-    <div class="crew-kpi"><div class="crew-kpi-label">Ajudantes disponíveis</div><div class="crew-kpi-value" style="color:var(--chp)">${helpers}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Veículos cadastrados</div><div class="crew-kpi-value">${crews.length}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Com motorista</div><div class="crew-kpi-value" style="color:var(--accent)">${drivers}</div></div>
+    <div class="crew-kpi"><div class="crew-kpi-label">Com ajudante</div><div class="crew-kpi-value" style="color:var(--chp)">${helpers}</div></div>
     <div class="crew-kpi"><div class="crew-kpi-label">Equipe completa</div><div class="crew-kpi-value" style="color:var(--green)">${complete}</div></div>
-    <div class="crew-kpi"><div class="crew-kpi-label">Com indisponibilidade</div><div class="crew-kpi-value" style="color:#DC2626">${unavailable}</div></div>`;
+    <div class="crew-kpi"><div class="crew-kpi-label">Pendentes</div><div class="crew-kpi-value" style="color:${pending ? '#DC2626' : 'var(--muted)'}">${pending}</div></div>`;
 }
 
-function crewCardHtml(unit, adminMode) {
-  const crew = crewForUnit(unit.id) || {
-    driverName: '', driverStatus: 'sem_cadastro', helperName: '', helperStatus: 'sem_cadastro', note: '', updatedBy: '', updatedAt: ''
-  };
-  const key = `${adminMode ? 'admin' : 'user'}-${unit.id}`;
-  const fleetMeta = FLEET_STATUSES[unit.status] || FLEET_STATUSES.disponivel;
-  const ready = crewReady(unit, crew);
-  const statusText = ready ? 'Equipe completa e disponível' : unit.status !== 'disponivel' ? `Veículo ${fleetMeta.label.toLowerCase()}` : 'Equipe incompleta ou indisponível';
-  const statusClass = ready ? 'crew-ready' : unit.status !== 'disponivel' ? 'crew-unavailable' : 'crew-incomplete';
-  const updated = crew.updatedAt ? `Última atualização: ${esc(crew.updatedBy || 'Usuário')} · ${new Date(crew.updatedAt).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : 'Equipe ainda não cadastrada';
-  return `<div class="crew-card${ready ? ' ready' : ''}" data-crew-search="${escAttr(`${unit.plate} ${unit.vehicle} ${unit.carrier} ${crew.driverName} ${crew.helperName}`.toLowerCase())}">
-    <div class="crew-card-head">
-      <span class="crew-plate">${esc(unit.plate)}</span>
-      <div class="crew-model"><div>${esc(unit.vehicle)}</div>${adminMode ? `<div class="crew-carrier">${esc(unit.carrier)}</div>` : ''}</div>
-      <span class="crew-status" style="background:${fleetMeta.bg};color:${fleetMeta.color}">Frota: ${fleetMeta.label}</span>
-      <span class="crew-status ${statusClass}">${statusText}</span>
+function crewCardHtml(crew, adminMode) {
+  const complete = !!crew.driverName && !!crew.helperName;
+  const updated = crew.updatedAt ? `Atualizado por ${esc(crew.updatedBy || 'Usuário')} em ${new Date(crew.updatedAt).toLocaleString('pt-BR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}` : 'Sem atualização registrada';
+  return `<div class="crew-card${complete ? ' complete' : ''}">
+    <span class="crew-plate">${esc(crew.plate)}</span>
+    <div class="crew-model"><div>${esc(crew.vehicle)}</div>${adminMode ? `<div class="crew-carrier">${esc(crew.carrier)}</div>` : ''}<div class="crew-carrier">${updated}</div></div>
+    <div class="crew-people">
+      <div class="crew-person-display"><span>Motorista</span><b>${esc(crew.driverName || 'Não informado')}</b></div>
+      <div class="crew-person-display"><span>Ajudante</span><b>${esc(crew.helperName || 'Não informado')}</b></div>
     </div>
-    <div class="crew-body">
-      <div class="crew-person">
-        <div class="crew-person-title">Motorista / Driver</div>
-        <div class="crew-field"><label>Nome do motorista</label><input id="crewDriverName-${key}" maxlength="120" value="${escAttr(crew.driverName)}" placeholder="Nome completo do motorista"></div>
-        <div class="crew-field"><label>Disponibilidade do motorista</label><select id="crewDriverStatus-${key}">${crewStatusOptions(crew.driverStatus)}</select></div>
-      </div>
-      <div class="crew-person">
-        <div class="crew-person-title">Ajudante</div>
-        <div class="crew-field"><label>Nome do ajudante</label><input id="crewHelperName-${key}" maxlength="120" value="${escAttr(crew.helperName)}" placeholder="Nome completo do ajudante"></div>
-        <div class="crew-field"><label>Disponibilidade do ajudante</label><select id="crewHelperStatus-${key}">${crewStatusOptions(crew.helperStatus)}</select></div>
-      </div>
-    </div>
-    <div class="crew-footer">
-      <div class="crew-field crew-note"><label>Observação</label><input id="crewNote-${key}" maxlength="500" value="${escAttr(crew.note)}" placeholder="Ex: ajudante de folga, substituição no turno PM..."></div>
-      <div style="font-size:10.5px;color:var(--muted);flex-basis:100%">${updated}</div>
-      <button class="btn btn-p" onclick="saveCrewAssignment(${unit.id},${adminMode ? 'true' : 'false'})">Salvar equipe</button>
+    <span class="crew-status ${complete ? 'crew-ready' : 'crew-incomplete'}">${complete ? 'Liberado para portaria' : 'Cadastro incompleto'}</span>
+    <div class="crew-actions">
+      <button class="btn btn-s" style="font-size:11px;padding:6px 11px" onclick="openCrewEntryModal(${crew.id},${adminMode ? 'true' : 'false'})">Editar</button>
+      <button class="btn btn-s" style="font-size:11px;padding:6px 11px;color:#DC2626;border-color:#FCA5A5" onclick="deleteCrewEntry(${crew.id},${adminMode ? 'true' : 'false'})">Excluir</button>
     </div>
   </div>`;
 }
 
-function renderCrewCards(containerId, units, adminMode) {
+function renderCrewCards(containerId, crews, adminMode) {
   const container = document.getElementById(containerId);
   if (!container) return;
-  if (!units.length) {
-    container.innerHTML = '<div class="empty-state">Nenhuma placa de VUC ou Van foi cadastrada na Frota Fixa.</div>';
-    return;
-  }
-  container.innerHTML = units.map(unit => crewCardHtml(unit, adminMode)).join('');
+  container.innerHTML = crews.length ? crews.map(crew => crewCardHtml(crew, adminMode)).join('') : '<div class="empty-state">Nenhuma equipe cadastrada.</div>';
 }
 
 function renderCrewFleetTab() {
   if (!requireLogin()) return;
   crewMigrationMessage('crewMigrationUser');
-  const units = DB_CACHE.fleet_units
-    .filter(unit => unit.carrier === currentUser.carrier && isVoluminousCrewVehicle(unit.vehicle))
-    .sort((a, b) => a.vehicle.localeCompare(b.vehicle, 'pt-BR') || a.plate.localeCompare(b.plate, 'pt-BR'));
+  const query = (document.getElementById('searchCrewUserInput')?.value || '').trim().toLowerCase();
+  const allCrews = DB_CACHE.fleet_crews
+    .filter(crew => crew.carrier === currentUser.carrier)
+    .sort((a,b) => a.vehicle.localeCompare(b.vehicle,'pt-BR') || a.plate.localeCompare(b.plate,'pt-BR'));
+  const crews = query ? allCrews.filter(crew => `${crew.plate} ${crew.vehicle} ${crew.driverName} ${crew.helperName}`.toLowerCase().includes(query)) : allCrews;
+  const counter = document.getElementById('crewUserCount');
+  if (counter) counter.textContent = `${crews.length} equipe${crews.length !== 1 ? 's' : ''}`;
   const summary = document.getElementById('crewSummary');
-  if (summary) summary.innerHTML = crewSummaryHtml(units);
-  renderCrewCards('crewFleetGrid', units, false);
+  if (summary) summary.innerHTML = crewSummaryHtml(allCrews);
+  renderCrewCards('crewFleetGrid', crews, false);
+}
+
+function populateCrewAdminCarrierFilter() {
+  const select = document.getElementById('crewAdminCarrierFilter');
+  if (!select) return;
+  const currentValue = select.value;
+  select.innerHTML = '<option value="all">Todas as transportadoras</option>' + CARRIERS.map(carrier => `<option value="${escAttr(carrier)}">${esc(carrier)}</option>`).join('');
+  select.value = CARRIERS.includes(currentValue) ? currentValue : 'all';
+}
+
+function filteredAdminCrews() {
+  const query = (document.getElementById('searchCrewAdminInput')?.value || '').trim().toLowerCase();
+  const carrierFilter = document.getElementById('crewAdminCarrierFilter')?.value || 'all';
+  return DB_CACHE.fleet_crews
+    .filter(crew => carrierFilter === 'all' || crew.carrier === carrierFilter)
+    .filter(crew => !query || `${crew.plate} ${crew.vehicle} ${crew.carrier} ${crew.driverName} ${crew.helperName}`.toLowerCase().includes(query))
+    .sort((a,b) => a.carrier.localeCompare(b.carrier,'pt-BR') || a.vehicle.localeCompare(b.vehicle,'pt-BR') || a.plate.localeCompare(b.plate,'pt-BR'));
 }
 
 function renderAdminCrew() {
   crewMigrationMessage('crewMigrationAdmin');
-  const query = (document.getElementById('searchCrewAdminInput')?.value || '').trim().toLowerCase();
-  const allUnits = DB_CACHE.fleet_units
-    .filter(unit => isVoluminousCrewVehicle(unit.vehicle))
-    .sort((a, b) => a.carrier.localeCompare(b.carrier, 'pt-BR') || a.vehicle.localeCompare(b.vehicle, 'pt-BR') || a.plate.localeCompare(b.plate, 'pt-BR'));
-  const units = query ? allUnits.filter(unit => {
-    const crew = crewForUnit(unit.id);
-    return `${unit.plate} ${unit.vehicle} ${unit.carrier} ${crew?.driverName || ''} ${crew?.helperName || ''}`.toLowerCase().includes(query);
-  }) : allUnits;
+  populateCrewAdminCarrierFilter();
+  const crews = filteredAdminCrews();
   const counter = document.getElementById('crewAdminCount');
-  if (counter) counter.textContent = `${units.length} placa${units.length !== 1 ? 's' : ''}`;
+  if (counter) counter.textContent = `${crews.length} equipe${crews.length !== 1 ? 's' : ''}`;
   const summary = document.getElementById('adminCrewSummary');
-  if (summary) summary.innerHTML = crewSummaryHtml(allUnits);
-  renderCrewCards('adminCrewGrid', units, true);
+  if (summary) summary.innerHTML = crewSummaryHtml(crews);
+  renderCrewCards('adminCrewGrid', crews, true);
 }
 
-async function saveCrewAssignment(unitRuntimeId, adminMode) {
+let pendingCrewEditId = null;
+let pendingCrewAdminMode = false;
+
+function populateCrewVehicleModels() {
+  const list = document.getElementById('crewVehicleModels');
+  if (!list) return;
+  const names = Array.from(new Set([...VEHICLES, ...DB_CACHE.fleet_crews.map(crew => crew.vehicle)])).filter(Boolean).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  list.innerHTML = names.map(name => `<option value="${escAttr(name)}"></option>`).join('');
+}
+
+function populateCrewEntryCarriers(selected) {
+  const select = document.getElementById('crewEntryCarrier');
+  select.innerHTML = CARRIERS.map(carrier => `<option value="${escAttr(carrier)}"${carrier === selected ? ' selected' : ''}>${esc(carrier)}</option>`).join('');
+}
+
+function openCrewEntryModal(crewRuntimeId, adminMode) {
   if (!crewFeatureAvailable) {
-    showToast('⚠ Execute primeiro o SQL da equipe de volumosos no Supabase');
+    showToast('⚠ Execute primeiro o SQL de migração da equipe de volumosos');
     return;
   }
-  const unit = DB_CACHE.fleet_units.find(item => Number(item.id) === Number(unitRuntimeId));
-  if (!unit) {
-    showToast('⚠ Placa não encontrada');
+  const crew = crewRuntimeId == null ? null : DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(crewRuntimeId));
+  pendingCrewEditId = crew ? crew.id : null;
+  pendingCrewAdminMode = !!adminMode;
+  document.getElementById('crewEntryTitle').textContent = crew ? 'Editar equipe' : 'Cadastrar equipe';
+  document.getElementById('crewEntryPlate').value = crew?.plate || '';
+  document.getElementById('crewEntryModel').value = crew?.vehicle || '';
+  document.getElementById('crewEntryDriver').value = crew?.driverName || '';
+  document.getElementById('crewEntryHelper').value = crew?.helperName || '';
+  document.getElementById('crewEntryErr').classList.remove('show');
+  populateCrewVehicleModels();
+  const carrierField = document.getElementById('crewCarrierField');
+  carrierField.style.display = adminMode ? 'flex' : 'none';
+  populateCrewEntryCarriers(crew?.carrier || currentUser.carrier || CARRIERS[0]);
+  document.getElementById('crewEntryCarrier').disabled = !!crew;
+  document.getElementById('crewEntryModal').classList.add('show');
+  setTimeout(() => document.getElementById('crewEntryPlate').focus(), 80);
+}
+
+function closeCrewEntryModal() {
+  document.getElementById('crewEntryModal').classList.remove('show');
+  pendingCrewEditId = null;
+  pendingCrewAdminMode = false;
+}
+
+async function saveCrewEntryModal() {
+  const existing = pendingCrewEditId == null ? null : DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(pendingCrewEditId));
+  const carrier = pendingCrewAdminMode ? document.getElementById('crewEntryCarrier').value : currentUser.carrier;
+  const plate = normalizeCrewPlate(document.getElementById('crewEntryPlate').value);
+  const vehicleModel = document.getElementById('crewEntryModel').value.trim().replace(/\s+/g, ' ');
+  const driverName = document.getElementById('crewEntryDriver').value.trim().replace(/\s+/g, ' ');
+  const helperName = document.getElementById('crewEntryHelper').value.trim().replace(/\s+/g, ' ');
+  const errorElement = document.getElementById('crewEntryErr');
+  errorElement.classList.remove('show');
+  if (!carrier || !/^[A-Z0-9]{5,10}$/.test(plate) || vehicleModel.length < 2 || driverName.length < 3 || helperName.length < 3) {
+    errorElement.textContent = 'Informe transportadora, placa válida, modelo, motorista e ajudante.';
+    errorElement.classList.add('show');
     return;
   }
-  if (currentUser.role !== 'admin' && unit.carrier !== currentUser.carrier) {
-    showToast('⚠ Você não pode alterar a equipe de outra transportadora');
+  const duplicate = DB_CACHE.fleet_crews.find(item => item.carrier === carrier && item.plate === plate && (!existing || item.dbId !== existing.dbId));
+  if (duplicate) {
+    errorElement.textContent = 'Essa placa já possui uma equipe cadastrada nesta transportadora.';
+    errorElement.classList.add('show');
     return;
   }
-  const key = `${adminMode ? 'admin' : 'user'}-${unit.id}`;
-  const driverName = document.getElementById(`crewDriverName-${key}`).value.trim().replace(/\s+/g, ' ');
-  let driverStatus = document.getElementById(`crewDriverStatus-${key}`).value;
-  const helperName = document.getElementById(`crewHelperName-${key}`).value.trim().replace(/\s+/g, ' ');
-  let helperStatus = document.getElementById(`crewHelperStatus-${key}`).value;
-  const note = document.getElementById(`crewNote-${key}`).value.trim();
-  if (!driverName) driverStatus = 'sem_cadastro';
-  if (!helperName) helperStatus = 'sem_cadastro';
-  if (driverName && driverStatus === 'sem_cadastro') {
-    showToast('⚠ Selecione a disponibilidade do motorista');
-    return;
-  }
-  if (helperName && helperStatus === 'sem_cadastro') {
-    showToast('⚠ Selecione a disponibilidade do ajudante');
-    return;
-  }
+  const saveButton = document.getElementById('crewEntrySaveBtn');
+  saveButton.disabled = true;
+  saveButton.textContent = 'Salvando...';
+  const payload = {
+    carrier_id: carrierId(carrier),
+    plate,
+    vehicle_model: vehicleModel,
+    driver_name: driverName,
+    driver_status: 'available',
+    helper_name: helperName,
+    helper_status: 'available',
+    note: null,
+    updated_by: currentUser.id
+  };
   try {
-    const payload = {
-      fleet_unit_id: unit.dbId,
-      carrier_id: carrierId(unit.carrier),
-      driver_name: driverName || null,
-      driver_status: CREW_STATUSES[driverStatus].db,
-      helper_name: helperName || null,
-      helper_status: CREW_STATUSES[helperStatus].db,
-      note: note || null,
-      updated_by: currentUser.id
-    };
-    const { error } = await sbClient.from('fleet_crews').upsert(payload, { onConflict: 'fleet_unit_id' });
-    throwIfError(error);
+    let result;
+    if (existing) result = await sbClient.from('fleet_crews').update(payload).eq('id', existing.dbId);
+    else result = await sbClient.from('fleet_crews').insert(payload);
+    throwIfError(result.error);
+    closeCrewEntryModal();
     await loadAppData();
-    if (adminMode) renderAdminCrew(); else renderCrewFleetTab();
-    showToast('✓ Equipe vinculada à placa!');
+    if (pendingCrewAdminMode || currentUser.role === 'admin') renderAdminCrew(); else renderCrewFleetTab();
+    showToast(existing ? '✓ Equipe atualizada!' : '✓ Equipe cadastrada!');
   } catch (error) {
-    showToast(`⚠ ${friendlyError(error)}`);
+    errorElement.textContent = friendlyError(error);
+    errorElement.classList.add('show');
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = 'Salvar equipe';
   }
+}
+
+function deleteCrewEntry(crewRuntimeId, adminMode) {
+  const crew = DB_CACHE.fleet_crews.find(item => Number(item.id) === Number(crewRuntimeId));
+  if (!crew) return;
+  askConfirm(`Excluir a equipe da placa ${crew.plate}?`, async () => {
+    try {
+      const { error } = await sbClient.from('fleet_crews').delete().eq('id', crew.dbId);
+      throwIfError(error);
+      await loadAppData();
+      if (adminMode) renderAdminCrew(); else renderCrewFleetTab();
+      showToast('✓ Equipe removida');
+    } catch (error) {
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  });
+}
+
+function printCrewGateReport() {
+  const crews = filteredAdminCrews();
+  if (!crews.length) {
+    showToast('⚠ Nenhuma equipe encontrada para o relatório');
+    return;
+  }
+  const carrierFilter = document.getElementById('crewAdminCarrierFilter')?.value || 'all';
+  const generatedAt = new Date().toLocaleString('pt-BR');
+  const rows = crews.map((crew, index) => `<tr><td>${index + 1}</td><td>${esc(crew.carrier)}</td><td class="mono">${esc(crew.plate)}</td><td>${esc(crew.vehicle)}</td><td>${esc(crew.driverName)}</td><td>${esc(crew.helperName)}</td></tr>`).join('');
+  const reportWindow = window.open('', '_blank');
+  if (!reportWindow) {
+    showToast('⚠ Permita pop-ups para gerar o relatório');
+    return;
+  }
+  reportWindow.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Portaria - Equipes de Volumosos</title><style>
+    @page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Arial,sans-serif;color:#111827;margin:0}h1{font-size:20px;margin:0 0 4px}.meta{font-size:11px;color:#4B5563;margin-bottom:14px}.summary{display:flex;gap:12px;margin-bottom:14px}.box{border:1px solid #D1D5DB;border-radius:8px;padding:8px 12px;min-width:150px}.box b{display:block;font-size:18px;margin-top:3px}table{width:100%;border-collapse:collapse;font-size:10.5px}th{background:#1B2340;color:white;text-align:left;padding:8px 7px}td{border-bottom:1px solid #D1D5DB;padding:8px 7px;vertical-align:middle}tbody tr:nth-child(even){background:#F8FAFC}.mono{font-family:Consolas,monospace;font-weight:bold}.signatures{display:flex;gap:50px;margin-top:28px}.signature{flex:1;border-top:1px solid #6B7280;text-align:center;padding-top:5px;font-size:10px}.no-print{margin-bottom:12px}@media print{.no-print{display:none}}
+  </style></head><body><button class="no-print" onclick="window.print()">Imprimir / Salvar PDF</button><h1>Relação de Equipes de Volumosos - Portaria</h1><div class="meta">Gerado em ${esc(generatedAt)} · Filtro: ${esc(carrierFilter === 'all' ? 'Todas as transportadoras' : carrierFilter)}</div><div class="summary"><div class="box">Equipes listadas<b>${crews.length}</b></div><div class="box">Transportadoras<b>${new Set(crews.map(crew => crew.carrier)).size}</b></div></div><table><thead><tr><th>#</th><th>Transportadora</th><th>Placa</th><th>Modelo</th><th>Motorista</th><th>Ajudante</th></tr></thead><tbody>${rows}</tbody></table><div class="signatures"><div class="signature">Responsável pela Operação</div><div class="signature">Responsável pela Portaria</div></div></body></html>`);
+  reportWindow.document.close();
+  reportWindow.focus();
+  setTimeout(() => reportWindow.print(), 350);
 }
 
 /* ===================== AJUSTE DE FROTA PELO ADMIN ===================== */
@@ -4601,10 +4842,19 @@ async function bootstrapSupabaseApp() {
         showScreen('loginScreen');
         authMessage('O link de recuperação expirou ou já foi utilizado. Solicite um novo link.', true);
       }
-    } else if (data.session?.user) {
-      await startAuthenticatedSession(data.session.user);
     } else {
+      // Nunca reaproveita uma sessão anterior ao abrir ou atualizar a página.
+      // O escopo local não encerra outras sessões do usuário em outros dispositivos.
+      if (data.session) {
+        try { await sbClient.auth.signOut({ scope: 'local' }); } catch (signOutError) { console.warn(signOutError); }
+      }
+      currentUser = null;
+      adminSessionGranted = false;
+      resetRuntimeState();
+      document.getElementById('loginName').value = '';
+      document.getElementById('loginPwd').value = '';
       showScreen('loginScreen');
+      authMessage('');
     }
     supabaseBooted = true;
   } catch (error) {
