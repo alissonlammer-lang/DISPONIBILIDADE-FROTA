@@ -460,6 +460,43 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
 .carrier-coverage-empty{font-size:10.5px;color:var(--muted);font-style:italic}
 @media(max-width:980px){.carrier-coverage-grid{grid-template-columns:1fr}}
 
+/* Editor administrativo da visão semanal. */
+.admin-week-edit-btn:disabled{opacity:.5;cursor:not-allowed;filter:grayscale(.25)}
+.admin-week-editor-modal{max-width:1180px!important;width:min(1180px,calc(100vw - 28px))!important;max-height:92vh;display:flex;flex-direction:column;padding:22px 22px 18px!important}
+.admin-week-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:10px}
+.admin-week-editor-head h2{font-size:17px;margin-bottom:4px}
+.admin-week-editor-head p{font-size:11.5px;color:var(--muted);line-height:1.45;margin:0}
+.admin-week-editor-close{width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-size:18px;line-height:1;color:var(--muted)}
+.admin-week-editor-close:hover{background:var(--bg);color:var(--text)}
+.admin-week-editor-toolbar{display:grid;grid-template-columns:minmax(200px,1.3fr) minmax(210px,1.1fr) minmax(170px,.8fr) minmax(150px,.7fr);gap:10px;margin-bottom:10px}
+.admin-week-editor-toolbar input,.admin-week-editor-toolbar select{width:100%;font-family:'Inter',sans-serif;font-size:12px;padding:8px 9px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--text);outline:none}
+.admin-week-editor-toolbar input:focus,.admin-week-editor-toolbar select:focus{border-color:var(--meli-link);box-shadow:0 0 0 3px rgba(52,131,250,.12)}
+.admin-week-editor-warning{background:#FFFBE6;border:1px solid #F3DF73;border-radius:9px;padding:9px 11px;font-size:11px;line-height:1.45;color:#6B5B00;margin-bottom:10px}
+.admin-week-editor-table-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;min-height:170px;max-height:50vh;background:#fff}
+.admin-week-editor-table{width:100%;border-collapse:collapse;min-width:980px;font-size:11px}
+.admin-week-editor-table th{position:sticky;top:0;z-index:3;background:#F7F8FA;color:#60636B;font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;padding:8px 7px;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+.admin-week-editor-table th:first-child,.admin-week-editor-table td:first-child{position:sticky;left:0;z-index:2;background:#fff;text-align:left;min-width:190px}
+.admin-week-editor-table th:first-child{z-index:4;background:#F7F8FA}
+.admin-week-editor-table td{padding:6px 7px;border-bottom:1px solid #ECEFF3;text-align:center}
+.admin-week-editor-table tbody tr:hover td{background:#FFFDF1}
+.admin-week-editor-table tbody tr:hover td:first-child{background:#FFFDF1}
+.admin-week-editor-model{font-weight:700;font-family:'Inter',sans-serif;line-height:1.25}
+.admin-week-editor-cycle{display:inline-flex;margin-top:3px;padding:2px 7px;border-radius:999px;font-family:'DM Mono',monospace;font-size:9.5px;font-weight:800;background:var(--accent-l);color:var(--accent)}
+.admin-week-editor-input{width:58px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;text-align:center;font-family:'DM Mono',monospace;font-size:12px;outline:none;background:#fff}
+.admin-week-editor-input:focus{border-color:var(--meli-link);box-shadow:0 0 0 2px rgba(52,131,250,.12)}
+.admin-week-editor-input.nz{color:var(--green);font-weight:800;background:var(--green-l);border-color:#86EFAC}
+.admin-week-editor-row-total{font-family:'DM Mono',monospace;font-weight:800;color:var(--meli-blue)}
+.admin-week-editor-table tfoot td{position:sticky;bottom:0;background:var(--meli-blue);color:#fff;font-family:'DM Mono',monospace;font-weight:800;border:none;padding:8px 7px;text-align:center;z-index:2}
+.admin-week-editor-table tfoot td:first-child{background:var(--meli-blue);z-index:3}
+.admin-week-editor-bottom{display:grid;grid-template-columns:minmax(240px,1fr) auto;gap:12px;align-items:end;margin-top:12px}
+.admin-week-editor-note label{display:block;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+.admin-week-editor-note input{width:100%;font-family:'Inter',sans-serif;font-size:12px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;outline:none}
+.admin-week-editor-note input:focus{border-color:var(--meli-link);box-shadow:0 0 0 3px rgba(52,131,250,.12)}
+.admin-week-editor-summary{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.4}
+.admin-week-editor-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+@media(max-width:850px){.admin-week-editor-toolbar{grid-template-columns:1fr 1fr}.admin-week-editor-bottom{grid-template-columns:1fr}.admin-week-editor-actions{justify-content:stretch}.admin-week-editor-actions button{flex:1;justify-content:center}}
+@media(max-width:560px){.admin-week-editor-toolbar{grid-template-columns:1fr}.admin-week-editor-modal{width:calc(100vw - 12px)!important;padding:16px 12px!important}.admin-week-editor-actions{flex-direction:column}.admin-week-editor-actions button{width:100%}}
+
 /* Filtros e KPIs de Frota Fixa. */
 .fixed-status-summary{display:grid;grid-template-columns:repeat(4,minmax(145px,1fr));gap:10px;margin-bottom:14px}
 .fixed-status-card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s}
@@ -858,6 +895,37 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
   </div>
 </div>
 
+<!-- EDITOR ADMINISTRATIVO DA VISÃO SEMANAL -->
+<div class="modal-ov" id="adminWeekEditModal">
+  <div class="modal admin-week-editor-modal">
+    <div class="admin-week-editor-head">
+      <div>
+        <h2>Ajustar visão semanal da MLP</h2>
+        <p id="adminWeekEditSubtitle">Selecione uma transportadora no consolidado semanal para editar.</p>
+      </div>
+      <button type="button" class="admin-week-editor-close" onclick="closeAdminWeekEditor()" aria-label="Fechar">×</button>
+    </div>
+    <div class="admin-week-editor-toolbar">
+      <div class="mf"><label>Transportadora</label><input id="adminWeekEditCarrier" readonly aria-readonly="true"></div>
+      <div class="mf"><label>Semana operacional</label><input id="adminWeekEditWeek" readonly aria-readonly="true"></div>
+      <div class="mf"><label>Buscar modelo</label><input id="adminWeekEditModelSearch" placeholder="Ex: VUC, Van..." oninput="renderAdminWeekEditorTable()"></div>
+      <div class="mf"><label>Exibir ciclo</label><select id="adminWeekEditCycleFilter" onchange="renderAdminWeekEditorTable()"><option value="all">Todos os ciclos</option><option value="AM1">AM1</option><option value="CHP">CHP</option><option value="PM1">PM1</option></select></div>
+    </div>
+    <div class="admin-week-editor-warning"><b>Atenção:</b> ao salvar, o sistema substitui a programação completa desta MLP entre domingo e sábado. Os ciclos ocultos pelo filtro continuam preservados no editor e também serão salvos.</div>
+    <div class="admin-week-editor-table-wrap" id="adminWeekEditTableWrap"></div>
+    <div class="admin-week-editor-bottom">
+      <div>
+        <div class="admin-week-editor-note"><label>Motivo do ajuste administrativo</label><input id="adminWeekEditNote" maxlength="500" placeholder="Ex: correção solicitada pela MLP / ajuste de capacidade..."></div>
+        <div class="admin-week-editor-summary" id="adminWeekEditSummary">—</div>
+      </div>
+      <div class="admin-week-editor-actions">
+        <button type="button" class="btn btn-g" onclick="closeAdminWeekEditor()">Cancelar</button>
+        <button type="button" class="btn btn-p" id="adminWeekEditSaveBtn" onclick="saveAdminWeekEditor()">Salvar semana da MLP</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN SCREEN -->
 <div id="adminScreen" class="screen">
   <div class="top-header">
@@ -933,6 +1001,10 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
             <select id="adminWeekCarrierFilter" onchange="renderAdminWeek()">
               <option value="all">Todas as transportadoras</option>
             </select>
+          </div>
+          <div class="mf">
+            <label>Ajuste administrativo</label>
+            <button type="button" class="btn btn-p admin-week-edit-btn" id="adminWeekEditOpenBtn" onclick="openAdminWeekEditor()" disabled>✎ Ajustar semana da MLP</button>
           </div>
           <div class="mf">
             <label>Filtrar modelo</label>
@@ -2344,6 +2416,199 @@ function exportAllCSV(){exportAllAvailCSV();exportAllWeekCSV();}
 
 
 let adminOverviewWeekStart=null;
+let adminWeekEditorState=null;
+let adminWeekEditorCarrier=null;
+let adminWeekEditorWeekStart=null;
+let adminWeekEditorSaving=false;
+
+function adminWeekEditorKey(model,day,cycle){
+  return `${model}|||${day}|||${cycle}`;
+}
+
+function adminWeekEditorValue(model,day,cycle){
+  return Number(adminWeekEditorState?.values?.[adminWeekEditorKey(model,day,cycle)]||0);
+}
+
+function setAdminWeekEditorValue(model,day,cycle,value){
+  if(!adminWeekEditorState)return 0;
+  const quantity=Math.max(0,Math.min(9999,parseInt(value,10)||0));
+  adminWeekEditorState.values[adminWeekEditorKey(model,day,cycle)]=quantity;
+  return quantity;
+}
+
+function adminWeekEditorModelsFor(carrier,data){
+  const existing=Object.keys(data||{});
+  const allowed=visibleVehiclesFor(carrier);
+  return Array.from(new Set([...allowed,...existing]))
+    .filter(model=>DB_CATALOG.vehicleIdByName.has(model))
+    .sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+
+function updateAdminWeekEditButton(selectedCarrier){
+  const button=document.getElementById('adminWeekEditOpenBtn');
+  if(!button)return;
+  const carrier=selectedCarrier||selectedAdminWeekCarrier();
+  const enabled=currentUser?.role==='admin'&&carrier!=='all';
+  button.disabled=!enabled;
+  button.textContent=enabled?`✎ Ajustar semana — ${carrier}`:'✎ Selecione uma MLP para ajustar';
+  button.title=enabled?'Editar os valores semanais desta transportadora':'Selecione uma transportadora no filtro acima';
+}
+
+function openAdminWeekEditor(){
+  if(currentUser?.role!=='admin'){
+    showToast('⚠ Acesso permitido apenas para administradores');
+    return;
+  }
+  const carrier=selectedAdminWeekCarrier();
+  if(carrier==='all'){
+    showToast('⚠ Selecione uma transportadora (MLP) antes de ajustar a semana');
+    document.getElementById('adminWeekCarrierFilter')?.focus();
+    return;
+  }
+  if(!adminOverviewWeekStart)adminOverviewWeekStart=getSundayOf(new Date());
+  const latest=latestWeekDataByCarrier(adminOverviewWeekStart);
+  const sourceData=cloneData(latest[carrier]?.data||{});
+  const days=getWeekDays(adminOverviewWeekStart);
+  const models=adminWeekEditorModelsFor(carrier,sourceData);
+  const values={};
+  models.forEach(model=>days.forEach(day=>CYCLES.forEach(cycle=>{
+    values[adminWeekEditorKey(model,day,cycle)]=Math.max(0,Number(sourceData?.[model]?.[day]?.[cycle])||0);
+  })));
+  adminWeekEditorCarrier=carrier;
+  adminWeekEditorWeekStart=adminOverviewWeekStart;
+  adminWeekEditorState={models,days,values,original:cloneData(values)};
+  document.getElementById('adminWeekEditCarrier').value=carrier;
+  document.getElementById('adminWeekEditWeek').value=`Semana ${getISOWeek(adminOverviewWeekStart)} · ${formatDay(days[0]).short} — ${formatDay(days[6]).short}`;
+  document.getElementById('adminWeekEditSubtitle').textContent=latest[carrier]
+    ?'Edite os valores enviados pela transportadora e salve a nova versão da semana.'
+    :'Esta MLP ainda não enviou a semana. Você pode criar a programação administrativa a partir de valores zerados.';
+  document.getElementById('adminWeekEditModelSearch').value='';
+  document.getElementById('adminWeekEditCycleFilter').value=activeAdminCycleFilter==='all'?'all':activeAdminCycleFilter;
+  document.getElementById('adminWeekEditNote').value='';
+  document.getElementById('adminWeekEditModal').classList.add('show');
+  renderAdminWeekEditorTable();
+}
+
+function closeAdminWeekEditor(){
+  if(adminWeekEditorSaving)return;
+  document.getElementById('adminWeekEditModal')?.classList.remove('show');
+  adminWeekEditorState=null;
+  adminWeekEditorCarrier=null;
+  adminWeekEditorWeekStart=null;
+}
+
+function adminWeekEditorVisibleRows(){
+  if(!adminWeekEditorState)return [];
+  const query=normalizeCoverageTerm(document.getElementById('adminWeekEditModelSearch')?.value||'');
+  const cycleFilter=document.getElementById('adminWeekEditCycleFilter')?.value||'all';
+  const cycles=cycleFilter==='all'?CYCLES:[cycleFilter];
+  const rows=[];
+  adminWeekEditorState.models
+    .filter(model=>!query||normalizeCoverageTerm(model).includes(query))
+    .forEach((model,modelIndex)=>cycles.forEach(cycle=>rows.push({model,modelIndex:adminWeekEditorState.models.indexOf(model),cycle})));
+  return rows;
+}
+
+function renderAdminWeekEditorTable(){
+  const wrap=document.getElementById('adminWeekEditTableWrap');
+  if(!wrap||!adminWeekEditorState)return;
+  const rows=adminWeekEditorVisibleRows();
+  const days=adminWeekEditorState.days;
+  if(!rows.length){
+    wrap.innerHTML='<div class="empty-state" style="border:none;border-radius:0">Nenhum modelo encontrado para o filtro informado.</div>';
+    updateAdminWeekEditorTotals();
+    return;
+  }
+  const head=`<thead><tr><th>Modelo / Ciclo</th>${days.map(day=>`<th>${formatDay(day).short}</th>`).join('')}<th>Total</th></tr></thead>`;
+  const body=rows.map(({model,modelIndex,cycle})=>{
+    const values=days.map(day=>adminWeekEditorValue(model,day,cycle));
+    const total=values.reduce((sum,value)=>sum+value,0);
+    return `<tr data-admin-week-row="${modelIndex}|${cycle}"><td><div class="admin-week-editor-model">${esc(model)}</div><span class="admin-week-editor-cycle">${cycle}</span></td>${values.map((value,dayIndex)=>`<td><input type="number" min="0" max="9999" class="admin-week-editor-input${value>0?' nz':''}" value="${value}" data-model-index="${modelIndex}" data-day-index="${dayIndex}" data-cycle="${cycle}"></td>`).join('')}<td class="admin-week-editor-row-total" data-row-total="${modelIndex}|${cycle}">${total}</td></tr>`;
+  }).join('');
+  const cycleFilter=document.getElementById('adminWeekEditCycleFilter')?.value||'all';
+  const cycles=cycleFilter==='all'?CYCLES:[cycleFilter];
+  const filteredModels=Array.from(new Set(rows.map(row=>row.model)));
+  const dayTotals=days.map(day=>filteredModels.reduce((sum,model)=>sum+cycles.reduce((cycleSum,cycle)=>cycleSum+adminWeekEditorValue(model,day,cycle),0),0));
+  const grand=dayTotals.reduce((sum,value)=>sum+value,0);
+  const foot=`<tfoot><tr><td>Total exibido</td>${dayTotals.map(value=>`<td data-editor-day-total>${value}</td>`).join('')}<td data-editor-grand-total>${grand}</td></tr></tfoot>`;
+  wrap.innerHTML=`<table class="admin-week-editor-table">${head}<tbody>${body}</tbody>${foot}</table>`;
+  wrap.querySelectorAll('.admin-week-editor-input').forEach(input=>{
+    input.addEventListener('input',()=>{
+      const model=adminWeekEditorState.models[Number(input.dataset.modelIndex)];
+      const day=adminWeekEditorState.days[Number(input.dataset.dayIndex)];
+      const quantity=setAdminWeekEditorValue(model,day,input.dataset.cycle,input.value);
+      input.value=quantity;
+      input.classList.toggle('nz',quantity>0);
+      updateAdminWeekEditorTotals();
+    });
+  });
+  updateAdminWeekEditorTotals();
+}
+
+function updateAdminWeekEditorTotals(){
+  if(!adminWeekEditorState)return;
+  const rows=adminWeekEditorVisibleRows();
+  const days=adminWeekEditorState.days;
+  rows.forEach(({model,modelIndex,cycle})=>{
+    const total=days.reduce((sum,day)=>sum+adminWeekEditorValue(model,day,cycle),0);
+    const cell=document.querySelector(`[data-row-total="${modelIndex}|${cycle}"]`);
+    if(cell)cell.textContent=total;
+  });
+  const visibleModels=Array.from(new Set(rows.map(row=>row.model)));
+  const visibleCycles=Array.from(new Set(rows.map(row=>row.cycle)));
+  const dayTotals=days.map(day=>visibleModels.reduce((sum,model)=>sum+visibleCycles.reduce((cycleSum,cycle)=>cycleSum+adminWeekEditorValue(model,day,cycle),0),0));
+  document.querySelectorAll('[data-editor-day-total]').forEach((cell,index)=>{cell.textContent=dayTotals[index]||0;});
+  const displayedGrand=dayTotals.reduce((sum,value)=>sum+value,0);
+  const grandCell=document.querySelector('[data-editor-grand-total]');
+  if(grandCell)grandCell.textContent=displayedGrand;
+  const allTotal=adminWeekEditorState.models.reduce((modelSum,model)=>modelSum+days.reduce((daySum,day)=>daySum+CYCLES.reduce((cycleSum,cycle)=>cycleSum+adminWeekEditorValue(model,day,cycle),0),0),0);
+  const changed=Object.keys(adminWeekEditorState.values).filter(key=>Number(adminWeekEditorState.values[key]||0)!==Number(adminWeekEditorState.original[key]||0)).length;
+  const summary=document.getElementById('adminWeekEditSummary');
+  if(summary)summary.innerHTML=`Total completo da semana: <b>${allTotal}</b> veículo${allTotal!==1?'s':''} · <b>${changed}</b> campo${changed!==1?'s':''} alterado${changed!==1?'s':''}.`;
+}
+
+async function saveAdminWeekEditor(){
+  if(adminWeekEditorSaving||!adminWeekEditorState||!adminWeekEditorCarrier||!adminWeekEditorWeekStart)return;
+  if(currentUser?.role!=='admin'){
+    showToast('⚠ Acesso permitido apenas para administradores');
+    return;
+  }
+  const note=document.getElementById('adminWeekEditNote').value.trim();
+  const entries=[];
+  adminWeekEditorState.models.forEach(model=>adminWeekEditorState.days.forEach(day=>CYCLES.forEach(cycle=>{
+    const quantity=adminWeekEditorValue(model,day,cycle);
+    if(quantity>0)entries.push({vehicle_id:vehicleId(model),operation_date:day,cycle,quantity});
+  })));
+  const button=document.getElementById('adminWeekEditSaveBtn');
+  adminWeekEditorSaving=true;
+  if(button){button.disabled=true;button.textContent='Salvando...';}
+  try{
+    const {error}=await sbClient.rpc('admin_replace_week_snapshot',{
+      p_carrier_id:carrierId(adminWeekEditorCarrier),
+      p_week_start:adminWeekEditorWeekStart,
+      p_entries:entries,
+      p_note:note||null
+    });
+    throwIfError(error);
+    const savedCarrier=adminWeekEditorCarrier;
+    await loadAppData();
+    adminWeekEditorSaving=false;
+    if(button){button.disabled=false;button.textContent='Salvar semana da MLP';}
+    closeAdminWeekEditor();
+    renderAdminWeek();
+    showToast(`✓ Semana de ${savedCarrier} ajustada pelo administrador!`);
+  }catch(error){
+    const raw=String(error?.message||error||'').toLowerCase();
+    if(raw.includes('admin_replace_week_snapshot')||error?.code==='PGRST202'||error?.code==='42883'){
+      showToast('⚠ Execute o SQL admin_ajustar_visao_semanal.sql no Supabase');
+    }else{
+      showToast(`⚠ ${friendlyError(error)}`);
+    }
+  }finally{
+    adminWeekEditorSaving=false;
+    if(button){button.disabled=false;button.textContent='Salvar semana da MLP';}
+  }
+}
 
 function shiftAdminOverviewWeek(direction){
   if(!adminOverviewWeekStart)adminOverviewWeekStart=getSundayOf(new Date());
@@ -2481,6 +2746,7 @@ function renderAdminWeekOverview(){
   if(!head||!body||!foot||!kpis||!label)return;
   if(!adminOverviewWeekStart)adminOverviewWeekStart=getSundayOf(new Date());
   const selectedCarrier=selectedAdminWeekCarrier();
+  updateAdminWeekEditButton(selectedCarrier);
   const days=getWeekDays(adminOverviewWeekStart);
   const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
   const latest=latestWeekDataByCarrier(adminOverviewWeekStart);
