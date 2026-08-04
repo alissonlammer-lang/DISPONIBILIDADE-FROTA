@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; script-src-attr 'unsafe-inline'; connect-src 'self' https://tubjquxufgjyhybqvdqs.supabase.co wss://tubjquxufgjyhybqvdqs.supabase.co; upgrade-insecure-requests">
-<title>Disponibilidade de Frota</title>
+<title>Mercado Envios | Disponibilidade de Frota</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -331,6 +331,137 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   .vgrid{grid-template-columns:repeat(2,1fr)}
   .top-header,.tab-bar{padding-left:14px;padding-right:14px}
 }
+
+
+/* ============================================================
+   TEMA MERCADO ENVIOS + MELHORIAS DE VISUALIZAÇÃO
+   ============================================================ */
+:root{
+  --meli-yellow:#FFE600;
+  --meli-yellow-dark:#E6C900;
+  --meli-blue:#2D3277;
+  --meli-link:#3483FA;
+  --meli-soft:#FFFBE6;
+  --meli-bg:#F5F5F5;
+  --meli-ink:#272727;
+}
+body{background:var(--meli-bg);color:var(--meli-ink)}
+.login-card{border-top:6px solid var(--meli-yellow);box-shadow:0 12px 34px rgba(39,39,39,.10)}
+.login-logo{background:var(--meli-yellow);border-radius:50%}
+.login-logo svg{color:var(--meli-blue)}
+.login-card h1{color:var(--meli-blue)}
+.btn-login,.btn-p,.mbtn-ok{background:var(--meli-yellow);color:#252525;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+.btn-login:hover,.btn-p:hover,.mbtn-ok:hover{background:#F7DC00;opacity:1}
+.btn-p svg{stroke:currentColor}
+.btn-s:hover{border-color:var(--meli-yellow-dark);background:var(--meli-soft)}
+.top-header{background:#fff;border-bottom:1px solid #E5E7EB;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+.hicon{width:148px;height:42px;background:transparent;border-radius:0;justify-content:flex-start;gap:9px}
+.hicon svg{width:38px;height:38px;padding:8px;background:var(--meli-yellow);border-radius:50%;color:var(--meli-blue);stroke:var(--meli-blue);flex-shrink:0}
+.hicon::after{content:'mercado\Aenvios';white-space:pre;font-size:15px;line-height:.88;font-weight:800;letter-spacing:-.04em;color:var(--meli-blue);text-align:left}
+.top-header h1{color:#252525;font-size:14px}
+.top-header p{color:#737373}
+.avatar{background:var(--meli-yellow);color:var(--meli-blue)}
+.hlabel{color:#444}
+.hbtn{background:#F7F7F7;border-color:#DEDEDE;color:#333}
+.hbtn:hover{background:var(--meli-yellow);border-color:var(--meli-yellow-dark);color:#222}
+.tab-bar{background:#fff;border-color:#EEE}
+.tab-item{color:#4B5563}
+.tab-item:hover{color:#222;background:#FAFAFA}
+.tab-item.active{color:#222;background:var(--meli-yellow);border-color:var(--meli-blue)}
+.sum-hdr,.week-sum-hdr,.proj-sum-hdr{background:var(--meli-yellow)}
+.sum-hdr h2,.week-sum-hdr h2,.proj-sum-hdr h2{color:#242424}
+.sum-badge{background:var(--meli-blue);color:#fff}
+.meta-bar,.week-controls,.proj-info,.sum-section,.week-sum-section,.proj-sum-section,.carrier-card,.week-carrier-card,.rec-card,.crew-card{box-shadow:0 2px 8px rgba(0,0,0,.035)}
+.carrier-card,.week-carrier-card,.rec-card,.crew-card{border-top:3px solid transparent}
+.carrier-card:focus-within,.week-carrier-card:focus-within,.rec-card:focus-within,.crew-card:focus-within{border-top-color:var(--meli-yellow)}
+.cbadge,.wkbadge,.pcbadge{background:var(--meli-yellow);color:var(--meli-blue)}
+.modal{border-top:7px solid var(--meli-yellow);box-shadow:0 18px 55px rgba(0,0,0,.23)}
+.modal h2{color:var(--meli-blue)}
+.week-nav-btn:hover{background:var(--meli-yellow);border-color:var(--meli-yellow-dark);color:#222}
+.cf-btn.active-all{background:var(--meli-blue)}
+.crew-card-head{background:#FFFDF1}
+.crew-plate{background:var(--meli-yellow);color:#242424}
+.admin-main,.page-main{max-width:1500px}
+
+/* Navegação lateral em desktop, como um painel Mercado Envios. */
+@media(min-width:901px){
+  #formScreen,#adminScreen{padding-top:68px}
+  #formScreen .top-header,#adminScreen .top-header{position:fixed;top:0;left:0;right:0;height:68px;z-index:120}
+  #formScreen .tab-bar,#adminScreen .tab-bar{
+    position:fixed;top:68px;bottom:0;left:0;width:210px;z-index:100;
+    flex-direction:column;align-items:stretch;padding:18px 12px;
+    border-top:none;border-right:1px solid #E5E7EB;overflow-y:auto
+  }
+  #formScreen .tab-bar::before,#adminScreen .tab-bar::before{
+    display:block;padding:2px 10px 14px;font-size:11px;font-weight:800;
+    color:#555;text-transform:uppercase;letter-spacing:.07em
+  }
+  #formScreen .tab-bar::before{content:'Operação'}
+  #adminScreen .tab-bar::before{content:'Painel de Registros'}
+  #formScreen .tab-item,#adminScreen .tab-item{
+    width:100%;padding:11px 12px;margin:2px 0;border-bottom:none;border-left:4px solid transparent;
+    border-radius:8px;display:flex;align-items:center;gap:9px
+  }
+  #formScreen .tab-item.active,#adminScreen .tab-item.active{border-left-color:var(--meli-blue)}
+  #formScreen .tab-panel,#adminScreen .tab-panel{margin-left:210px;width:calc(100% - 210px);min-height:calc(100vh - 68px)}
+  #formScreen .page-main,#adminScreen .admin-main{padding:26px 30px 64px}
+}
+#ttAvail::before,#atAvail::before{content:'▦'}
+#ttWeek::before,#atWeek::before{content:'▤'}
+#ttCompareUser::before,#atCompare::before{content:'⇄'}
+#ttFixed::before,#atFixed::before{content:'▣'}
+#ttCrew::before,#atCrew::before{content:'♟'}
+#atUsers::before{content:'♙'}
+
+/* Visão rápida semanal consolidada. */
+.week-overview-card{background:#fff;border:1px solid var(--border);border-top:5px solid var(--meli-yellow);border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:0 3px 12px rgba(0,0,0,.04)}
+.week-overview-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.week-overview-title h2{font-size:15px;color:#252525;margin-bottom:4px}
+.week-overview-title p{font-size:11.5px;color:var(--muted);line-height:1.45}
+.overview-kpis{display:grid;grid-template-columns:repeat(4,minmax(145px,1fr));gap:10px;margin-bottom:14px}
+.overview-kpi{border:1px solid var(--border);border-radius:11px;padding:11px 13px;background:#fff}
+.overview-kpi strong{display:block;font-family:'DM Mono',monospace;font-size:19px;margin-top:4px;color:var(--meli-blue)}
+.overview-kpi span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.model-day-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+.model-day-table{width:100%;border-collapse:collapse;min-width:790px;font-size:12px}
+.model-day-table th{padding:9px 10px;background:#FAFAFA;color:#666;font-size:10px;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);text-align:center;white-space:nowrap}
+.model-day-table th:first-child,.model-day-table td:first-child{text-align:left;padding-left:14px;position:sticky;left:0;background:#fff;z-index:1}
+.model-day-table td{padding:9px 10px;border-bottom:1px solid #ECEFF3;text-align:center;font-family:'DM Mono',monospace}
+.model-day-table tbody tr:hover td{background:#FFFDF1}
+.model-day-table tbody tr:hover td:first-child{background:#FFFDF1}
+.model-day-table .model-name{font-family:'Inter',sans-serif;font-weight:700;min-width:190px}
+.model-day-table .cell-positive{color:var(--meli-blue);font-weight:800}
+.model-day-table tfoot td{background:var(--meli-blue);color:#fff;font-weight:800;border:none}
+.model-day-table tfoot td:first-child{background:var(--meli-blue);color:#fff}
+.section-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:22px 0 12px}
+.section-heading h2{font-size:14px;color:#333}
+.section-heading p{font-size:11px;color:var(--muted)}
+
+/* Filtros e KPIs de Frota Fixa. */
+.fixed-status-summary{display:grid;grid-template-columns:repeat(4,minmax(145px,1fr));gap:10px;margin-bottom:14px}
+.fixed-status-card{background:#fff;border:1px solid var(--border);border-radius:11px;padding:12px 14px;cursor:pointer;transition:transform .12s,border-color .12s,box-shadow .12s}
+.fixed-status-card:hover{transform:translateY(-1px);border-color:var(--meli-yellow-dark);box-shadow:0 4px 12px rgba(0,0,0,.06)}
+.fixed-status-card.active{outline:3px solid rgba(255,230,0,.38);border-color:var(--meli-yellow-dark)}
+.fixed-status-card span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.fixed-status-card strong{display:block;font-family:'DM Mono',monospace;font-size:20px;margin-top:4px}
+.admin-filter-select{font-family:'Inter',sans-serif;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;min-width:180px;outline:none}
+.admin-filter-select:focus{border-color:var(--meli-link);box-shadow:0 0 0 3px rgba(52,131,250,.12)}
+.fixed-unit-card{background:#fff;border:1px solid var(--border);border-left:5px solid #D1D5DB;border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px}
+.fixed-unit-card.status-disponivel{border-left-color:var(--green)}
+.fixed-unit-card.status-quebrado{border-left-color:#DC2626}
+.fixed-unit-card.status-manutencao{border-left-color:var(--pm1)}
+
+@media(max-width:900px){
+  .top-header{background:#fff}
+  .hicon{width:132px}
+  .tab-bar{background:#fff}
+  .overview-kpis,.fixed-status-summary{grid-template-columns:repeat(2,minmax(135px,1fr))}
+}
+@media(max-width:560px){
+  .overview-kpis,.fixed-status-summary{grid-template-columns:1fr}
+  .week-overview-head{align-items:stretch}
+}
+
 </style>
 </head>
 <body>
@@ -488,6 +619,27 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
         <div class="meta-right">
           <button class="btn btn-g" onclick="clearWeek()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg>Limpar semana</button>
+        </div>
+      </div>
+
+      <div class="week-overview-card">
+        <div class="week-overview-head">
+          <div class="week-overview-title">
+            <h2>Visão rápida por modelo e dia</h2>
+            <p>Veja o total de VUCs, Vans e demais modelos sem abrir transportadora por transportadora.</p>
+          </div>
+          <div class="mf">
+            <label>Filtrar modelo</label>
+            <input type="text" id="weekModelSearch" placeholder="Ex: VUC, Van..." oninput="renderWeekModelOverview()">
+          </div>
+        </div>
+        <div class="overview-kpis" id="weekModelKpis"></div>
+        <div class="model-day-wrap">
+          <table class="model-day-table">
+            <thead id="weekModelHead"></thead>
+            <tbody id="weekModelBody"></tbody>
+            <tfoot id="weekModelFoot"></tfoot>
+          </table>
         </div>
       </div>
 
@@ -739,18 +891,52 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
   <div id="adTabWeek" class="tab-panel">
     <div class="admin-main">
+      <div class="week-overview-card">
+        <div class="week-overview-head">
+          <div class="week-overview-title">
+            <h2>Consolidado semanal de todas as transportadoras</h2>
+            <p>Os números abaixo somam a última versão salva de cada MLP para a semana selecionada.</p>
+          </div>
+          <div class="mf">
+            <label>Semana de referência</label>
+            <div class="week-nav">
+              <button class="week-nav-btn" onclick="shiftAdminOverviewWeek(-1)" title="Semana anterior"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+              <div class="week-label" id="adminWeekOverviewLabel">—</div>
+              <button class="week-nav-btn" onclick="shiftAdminOverviewWeek(1)" title="Próxima semana"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+            </div>
+          </div>
+          <div class="mf">
+            <label>Filtrar modelo</label>
+            <input type="text" id="adminWeekModelSearch" placeholder="Ex: VUC, Van..." oninput="renderAdminWeekOverview()">
+          </div>
+        </div>
+        <div class="admin-controls" style="margin-bottom:14px">
+          <div class="mf" style="min-width:245px">
+            <label>Filtrar por ciclo</label>
+            <div class="cycle-filter">
+              <button class="cf-btn active-all" id="acf-all" onclick="setAdminCycleFilter('all')">Todos</button>
+              <button class="cf-btn" id="acf-AM1" onclick="setAdminCycleFilter('AM1')">AM1</button>
+              <button class="cf-btn" id="acf-CHP" onclick="setAdminCycleFilter('CHP')">CHP</button>
+              <button class="cf-btn" id="acf-PM1" onclick="setAdminCycleFilter('PM1')">PM1</button>
+            </div>
+          </div>
+        </div>
+        <div class="overview-kpis" id="adminWeekOverviewKpis"></div>
+        <div class="model-day-wrap">
+          <table class="model-day-table">
+            <thead id="adminWeekOverviewHead"></thead>
+            <tbody id="adminWeekOverviewBody"></tbody>
+            <tfoot id="adminWeekOverviewFoot"></tfoot>
+          </table>
+        </div>
+      </div>
+
+      <div class="section-heading">
+        <div><h2>Histórico de envios semanais</h2><p>Abra um registro para conferir o detalhamento por transportadora, modelo e ciclo.</p></div>
+      </div>
       <div class="admin-controls">
         <input type="text" id="searchWeekInput" placeholder="🔍  Buscar por nome..." oninput="renderAdminWeek()">
         <input type="number" id="filterWeekNumber" placeholder="Nº da semana (ex: 30)" min="1" max="53" oninput="renderAdminWeek()" style="min-width:170px">
-        <div class="mf" style="min-width:245px">
-          <label>Filtrar por Ciclo</label>
-          <div class="cycle-filter">
-            <button class="cf-btn active-all" id="acf-all" onclick="setAdminCycleFilter('all')">Todos</button>
-            <button class="cf-btn" id="acf-AM1" onclick="setAdminCycleFilter('AM1')">AM1</button>
-            <button class="cf-btn" id="acf-CHP" onclick="setAdminCycleFilter('CHP')">CHP</button>
-            <button class="cf-btn" id="acf-PM1" onclick="setAdminCycleFilter('PM1')">PM1</button>
-          </div>
-        </div>
         <button class="btn btn-g" style="font-size:12px;padding:7px 12px" onclick="document.getElementById('filterWeekNumber').value='';renderAdminWeek()">Limpar semana</button>
         <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="exportAllWeekCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
         <span class="rcount" id="weekCount"></span>
@@ -779,8 +965,18 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-h
         </div>
         <div id="fixedMappingList"></div>
       </div>
+      <div class="fixed-status-summary" id="fixedStatusSummary"></div>
       <div class="admin-controls">
-        <input type="text" id="searchFixedInput" placeholder="🔍  Buscar por placa ou transportadora..." oninput="renderAdminFixedFleet()">
+        <input type="text" id="searchFixedInput" placeholder="🔍  Buscar placa, modelo ou transportadora..." oninput="renderAdminFixedFleet()">
+        <select id="filterFixedCarrier" class="admin-filter-select" onchange="renderAdminFixedFleet()"><option value="all">Todas as transportadoras</option></select>
+        <select id="filterFixedVehicle" class="admin-filter-select" onchange="renderAdminFixedFleet()"><option value="all">Todos os modelos</option></select>
+        <select id="filterFixedStatus" class="admin-filter-select" onchange="renderAdminFixedFleet()">
+          <option value="all">Todos os status</option>
+          <option value="disponivel">Disponíveis</option>
+          <option value="quebrado">Quebrados</option>
+          <option value="manutencao">Em manutenção</option>
+        </select>
+        <button class="btn btn-g" onclick="clearAdminFixedFilters()">Limpar filtros</button>
         <span class="rcount" id="fixedCount"></span>
       </div>
       <div id="fixedAdminList"></div>
@@ -1342,6 +1538,7 @@ function setAdminCycleFilter(f){
     btn.className='cf-btn';
     if(k===f) btn.classList.add(k==='all'?'active-all':`active-${k.toLowerCase()}`);
   });
+  renderAdminWeekOverview();
   renderAdminWeek();
 }
 
@@ -1494,6 +1691,7 @@ function renderWeekUI(){
   }))));
 
   renderWeekSummary(days,cycles);
+  renderWeekModelOverview(days,cycles);
 }
 
 function refreshWeekTotals(ci,carrier,vi,vehicle,cy,days){
@@ -1513,7 +1711,9 @@ function refreshWeekTotals(ci,carrier,vi,vehicle,cy,days){
   const gt=document.getElementById(`wgt-${ci}`); if(gt) gt.textContent=wkTot;
   const ct=document.getElementById(`wctot-${ci}`); if(ct) ct.textContent=`Semana: ${wkTot}`;
   const toggle=document.getElementById(`wtoggle-${ci}`);
-  renderWeekSummary(days,activeCycleFilter==='all'?CYCLES:[activeCycleFilter]);
+  const visibleCycles=activeCycleFilter==='all'?CYCLES:[activeCycleFilter];
+  renderWeekSummary(days,visibleCycles);
+  renderWeekModelOverview(days,visibleCycles);
 }
 
 function renderWeekSummary(days,cycles){
@@ -1548,6 +1748,58 @@ function renderWeekSummary(days,cycles){
   tr.innerHTML=ftHTML; tfoot.appendChild(tr);
 
   document.getElementById('weekGrandBadge').textContent=`${grand} veículo${grand!==1?'s':''}`;
+}
+
+
+function buildModelDayOverview({days,models,getValue,query=''}){
+  const normalizedQuery=String(query||'').trim().toLowerCase();
+  const rows=models.map(model=>{
+    const values=days.map(day=>Number(getValue(model,day))||0);
+    return {model,values,total:values.reduce((a,b)=>a+b,0)};
+  }).filter(row=>{
+    const matches=!normalizedQuery||row.model.toLowerCase().includes(normalizedQuery);
+    return matches&&(row.total>0||normalizedQuery);
+  }).sort((a,b)=>b.total-a.total||a.model.localeCompare(b.model,'pt-BR'));
+  const dayTotals=days.map((_,index)=>rows.reduce((sum,row)=>sum+row.values[index],0));
+  const grand=dayTotals.reduce((a,b)=>a+b,0);
+  return {rows,dayTotals,grand};
+}
+
+function overviewPeakDay(days,totals){
+  if(!totals.length||Math.max(...totals)<=0)return {label:'—',value:0};
+  const index=totals.indexOf(Math.max(...totals));
+  return {label:formatDay(days[index]).short,value:totals[index]};
+}
+
+function renderWeekModelOverview(daysArg,cyclesArg){
+  const head=document.getElementById('weekModelHead');
+  const body=document.getElementById('weekModelBody');
+  const foot=document.getElementById('weekModelFoot');
+  const kpis=document.getElementById('weekModelKpis');
+  if(!head||!body||!foot||!kpis||!currentWeekStart)return;
+  const days=daysArg||getWeekDays(currentWeekStart);
+  const cycles=cyclesArg||(activeCycleFilter==='all'?CYCLES:[activeCycleFilter]);
+  const carriers=visibleCarriersList().filter(Boolean);
+  const models=Array.from(new Set(carriers.flatMap(carrier=>visibleVehiclesFor(carrier))));
+  const query=document.getElementById('weekModelSearch')?.value||'';
+  const getValue=(model,day)=>carriers.reduce((sum,carrier)=>sum+cycles.reduce((cycleSum,cycle)=>cycleSum+getW(carrier,model,day,cycle),0),0);
+  const overview=buildModelDayOverview({days,models,query,getValue});
+  const completeOverview=buildModelDayOverview({days,models,query:'',getValue});
+  const peak=overviewPeakDay(days,completeOverview.dayTotals);
+  const vucTotal=completeOverview.rows.filter(row=>/\bvuc\b/i.test(row.model)).reduce((sum,row)=>sum+row.total,0);
+  const topModel=completeOverview.rows[0]||null;
+  kpis.innerHTML=`
+    <div class="overview-kpi"><span>Total na semana</span><strong>${overview.grand}</strong></div>
+    <div class="overview-kpi"><span>Dia com maior frota</span><strong>${peak.label}${peak.value?` · ${peak.value}`:''}</strong></div>
+    <div class="overview-kpi"><span>Total de VUCs</span><strong>${vucTotal}</strong></div>
+    <div class="overview-kpi"><span>Modelo com maior volume</span><strong>${topModel?`${esc(topModel.model)} · ${topModel.total}`:'—'}</strong></div>`;
+  head.innerHTML=`<tr><th>Modelo</th>${days.map(day=>`<th>${formatDay(day).short}</th>`).join('')}<th>Total</th><th>Média/dia</th></tr>`;
+  if(!overview.rows.length){
+    body.innerHTML=`<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--muted);font-family:'Inter',sans-serif">Nenhum valor preenchido para o filtro atual.</td></tr>`;
+  }else{
+    body.innerHTML=overview.rows.map(row=>`<tr><td class="model-name">${esc(row.model)}</td>${row.values.map(value=>`<td class="${value>0?'cell-positive':''}">${value}</td>`).join('')}<td class="cell-positive">${row.total}</td><td>${(row.total/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`).join('');
+  }
+  foot.innerHTML=`<tr><td>Total do dia</td>${overview.dayTotals.map(value=>`<td>${value}</td>`).join('')}<td>${overview.grand}</td><td>${(overview.grand/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`;
 }
 
 function visibleCarriersList(){
@@ -2045,7 +2297,75 @@ function exportAllWeekCSV(){
 
 function exportAllCSV(){exportAllAvailCSV();exportAllWeekCSV();}
 
+
+let adminOverviewWeekStart=null;
+
+function shiftAdminOverviewWeek(direction){
+  if(!adminOverviewWeekStart)adminOverviewWeekStart=getMondayOf(new Date());
+  const date=new Date(adminOverviewWeekStart+'T12:00:00');
+  date.setDate(date.getDate()+direction*7);
+  adminOverviewWeekStart=getMondayOf(date);
+  renderAdminWeekOverview();
+}
+
+function latestWeekDataByCarrier(weekStart){
+  const latest={};
+  loadRecords('frota_week').filter(record=>record.weekStart===weekStart).forEach(record=>{
+    Object.keys(record.data||{}).forEach(carrier=>{
+      if(!latest[carrier]||new Date(record.submittedAt)>new Date(latest[carrier].submittedAt)){
+        latest[carrier]={submittedAt:record.submittedAt,data:record.data[carrier]||{}};
+      }
+    });
+  });
+  return latest;
+}
+
+function renderAdminWeekOverview(){
+  const head=document.getElementById('adminWeekOverviewHead');
+  const body=document.getElementById('adminWeekOverviewBody');
+  const foot=document.getElementById('adminWeekOverviewFoot');
+  const kpis=document.getElementById('adminWeekOverviewKpis');
+  const label=document.getElementById('adminWeekOverviewLabel');
+  if(!head||!body||!foot||!kpis||!label)return;
+  if(!adminOverviewWeekStart)adminOverviewWeekStart=getMondayOf(new Date());
+  const days=getWeekDays(adminOverviewWeekStart);
+  const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
+  const latest=latestWeekDataByCarrier(adminOverviewWeekStart);
+  const carriers=Object.keys(latest);
+  const models=Array.from(new Set([
+    ...VEHICLES,
+    ...carriers.flatMap(carrier=>Object.keys(latest[carrier].data||{}))
+  ]));
+  const query=document.getElementById('adminWeekModelSearch')?.value||'';
+  const getValue=(model,day)=>carriers.reduce((sum,carrier)=>{
+    const dayData=latest[carrier].data?.[model]?.[day]||{};
+    return sum+cycles.reduce((cycleSum,cycle)=>cycleSum+(Number(dayData[cycle])||0),0);
+  },0);
+  const overview=buildModelDayOverview({days,models,query,getValue});
+  const completeOverview=buildModelDayOverview({days,models,query:'',getValue});
+  const peak=overviewPeakDay(days,completeOverview.dayTotals);
+  const vucTotal=completeOverview.rows.filter(row=>/\bvuc\b/i.test(row.model)).reduce((sum,row)=>sum+row.total,0);
+  const vanTotal=completeOverview.rows.filter(row=>/\bvan\b/i.test(row.model)).reduce((sum,row)=>sum+row.total,0);
+  label.textContent=`Semana ${getISOWeek(adminOverviewWeekStart)} · ${formatDay(days[0]).short} — ${formatDay(days[6]).short}`;
+  kpis.innerHTML=`
+    <div class="overview-kpi"><span>Total consolidado</span><strong>${overview.grand}</strong></div>
+    <div class="overview-kpi"><span>Transportadoras com envio</span><strong>${carriers.length}</strong></div>
+    <div class="overview-kpi"><span>VUCs na semana</span><strong>${vucTotal}</strong></div>
+    <div class="overview-kpi"><span>Vans na semana</span><strong>${vanTotal}</strong></div>`;
+  head.innerHTML=`<tr><th>Modelo</th>${days.map(day=>`<th>${formatDay(day).short}</th>`).join('')}<th>Total</th><th>Média/dia</th></tr>`;
+  if(!overview.rows.length){
+    body.innerHTML=`<tr><td colspan="10" style="padding:26px;text-align:center;color:var(--muted);font-family:'Inter',sans-serif">Nenhuma transportadora salvou dados para esta semana e filtro.</td></tr>`;
+  }else{
+    body.innerHTML=overview.rows.map(row=>`<tr><td class="model-name">${esc(row.model)}</td>${row.values.map(value=>`<td class="${value>0?'cell-positive':''}">${value}</td>`).join('')}<td class="cell-positive">${row.total}</td><td>${(row.total/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`).join('');
+  }
+  foot.innerHTML=`<tr><td>Total do dia</td>${overview.dayTotals.map(value=>`<td>${value}</td>`).join('')}<td>${overview.grand}</td><td>${(overview.grand/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`;
+  if(peak.value){
+    kpis.children[0].title=`Maior dia: ${peak.label} (${peak.value})`;
+  }
+}
+
 function renderAdminWeek(){
+  renderAdminWeekOverview();
   const recs=loadRecords('frota_week');
   const s=(document.getElementById('searchWeekInput').value||'').toLowerCase();
   const weekFilter=document.getElementById('filterWeekNumber').value;
@@ -2174,30 +2494,103 @@ function adminDeleteUser(name){
   });
 }
 
+function populateAdminFixedFilterControls(allUnits){
+  const carrierSelect=document.getElementById('filterFixedCarrier');
+  const vehicleSelect=document.getElementById('filterFixedVehicle');
+  if(carrierSelect){
+    const selected=carrierSelect.value||'all';
+    const carriers=Array.from(new Set(allUnits.map(unit=>unit.carrier))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    carrierSelect.innerHTML='<option value="all">Todas as transportadoras</option>'+carriers.map(carrier=>`<option value="${escAttr(carrier)}">${esc(carrier)}</option>`).join('');
+    carrierSelect.value=carriers.includes(selected)?selected:'all';
+  }
+  if(vehicleSelect){
+    const selected=vehicleSelect.value||'all';
+    const vehicles=Array.from(new Set(allUnits.map(unit=>unit.vehicle))).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+    vehicleSelect.innerHTML='<option value="all">Todos os modelos</option>'+vehicles.map(vehicle=>`<option value="${escAttr(vehicle)}">${esc(vehicle)}</option>`).join('');
+    vehicleSelect.value=vehicles.includes(selected)?selected:'all';
+  }
+}
+
+function setAdminFixedStatusFilter(status){
+  const select=document.getElementById('filterFixedStatus');
+  if(select)select.value=status;
+  renderAdminFixedFleet();
+}
+
+function clearAdminFixedFilters(){
+  const search=document.getElementById('searchFixedInput');
+  const carrier=document.getElementById('filterFixedCarrier');
+  const vehicle=document.getElementById('filterFixedVehicle');
+  const status=document.getElementById('filterFixedStatus');
+  if(search)search.value='';
+  if(carrier)carrier.value='all';
+  if(vehicle)vehicle.value='all';
+  if(status)status.value='all';
+  renderAdminFixedFleet();
+}
+
+function renderFixedStatusSummary(allUnits){
+  const target=document.getElementById('fixedStatusSummary');
+  if(!target)return;
+  const selected=document.getElementById('filterFixedStatus')?.value||'all';
+  const counts={
+    all:allUnits.length,
+    disponivel:allUnits.filter(unit=>unit.status==='disponivel').length,
+    quebrado:allUnits.filter(unit=>unit.status==='quebrado').length,
+    manutencao:allUnits.filter(unit=>unit.status==='manutencao').length
+  };
+  const cards=[
+    ['all','Total cadastrado',counts.all,'var(--meli-blue)'],
+    ['disponivel','Disponíveis',counts.disponivel,'var(--green)'],
+    ['quebrado','Quebrados',counts.quebrado,'#DC2626'],
+    ['manutencao','Em manutenção',counts.manutencao,'var(--pm1)']
+  ];
+  target.innerHTML=cards.map(([status,label,total,color])=>`<div class="fixed-status-card${selected===status?' active':''}" onclick="setAdminFixedStatusFilter('${status}')"><span>${label}</span><strong style="color:${color}">${total}</strong></div>`).join('');
+}
+
 function renderAdminFixedFleet(){
   populateFixedMappingSelects();
   renderFixedMappingList();
-  const q=(document.getElementById('searchFixedInput').value||'').toLowerCase();
-  const units=loadFleetUnits().filter(u=>u.plate.toLowerCase().includes(q)||u.carrier.toLowerCase().includes(q)||u.vehicle.toLowerCase().includes(q));
-  document.getElementById('fixedCount').textContent=`${units.length} veículo${units.length!==1?'s':''}`;
+  const allUnits=loadFleetUnits();
+  populateAdminFixedFilterControls(allUnits);
+  renderFixedStatusSummary(allUnits);
+  const query=(document.getElementById('searchFixedInput')?.value||'').trim().toLowerCase();
+  const carrierFilter=document.getElementById('filterFixedCarrier')?.value||'all';
+  const vehicleFilter=document.getElementById('filterFixedVehicle')?.value||'all';
+  const statusFilter=document.getElementById('filterFixedStatus')?.value||'all';
+  const units=allUnits.filter(unit=>{
+    if(carrierFilter!=='all'&&unit.carrier!==carrierFilter)return false;
+    if(vehicleFilter!=='all'&&unit.vehicle!==vehicleFilter)return false;
+    if(statusFilter!=='all'&&unit.status!==statusFilter)return false;
+    return !query||`${unit.plate} ${unit.carrier} ${unit.vehicle} ${unit.note||''}`.toLowerCase().includes(query);
+  }).sort((a,b)=>{
+    const rank={quebrado:0,manutencao:1,disponivel:2};
+    return (rank[a.status]??9)-(rank[b.status]??9)||a.carrier.localeCompare(b.carrier,'pt-BR')||a.vehicle.localeCompare(b.vehicle,'pt-BR')||a.plate.localeCompare(b.plate,'pt-BR');
+  });
+  const count=document.getElementById('fixedCount');
+  if(count)count.textContent=`${units.length} de ${allUnits.length} veículo${allUnits.length!==1?'s':''}`;
   const list=document.getElementById('fixedAdminList');
-  if(!units.length){list.innerHTML='<p style="color:var(--muted);font-size:13px;padding:20px">Nenhum veículo de frota fixa cadastrado.</p>';return;}
-  list.innerHTML=units.map(u=>{
-    const st=FLEET_STATUSES[u.status]||FLEET_STATUSES.disponivel;
-    return `<div style="background:#fff;border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:8px;display:flex;flex-direction:column;gap:6px">
+  if(!list)return;
+  if(!units.length){
+    list.innerHTML='<div class="empty-state">Nenhum veículo encontrado para os filtros selecionados.</div>';
+    return;
+  }
+  list.innerHTML=units.map(unit=>{
+    const status=FLEET_STATUSES[unit.status]||FLEET_STATUSES.disponivel;
+    return `<div class="fixed-unit-card status-${escAttr(unit.status)}">
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-        <span style="font-family:'DM Mono',monospace;font-weight:700;font-size:13px;min-width:90px">${esc(u.plate)}</span>
-        <div style="flex:1;min-width:180px">
-          <div style="font-weight:600;font-size:13px">${esc(u.vehicle)}</div>
-          <div style="font-size:11px;color:var(--muted)">${esc(u.carrier)}</div>
+        <span style="font-family:'DM Mono',monospace;font-weight:800;font-size:13px;min-width:92px">${esc(unit.plate)}</span>
+        <div style="flex:1;min-width:190px">
+          <div style="font-weight:700;font-size:13px">${esc(unit.vehicle)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(unit.carrier)}</div>
         </div>
-        <span style="font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:${st.bg};color:${st.color}">${st.label}</span>
+        <span style="font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;background:${status.bg};color:${status.color}">${status.label}</span>
         <div style="display:flex;gap:4px;flex-wrap:wrap">
-          ${Object.keys(FLEET_STATUSES).map(s=>`<button style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:${u.status===s?FLEET_STATUSES[s].bg:'#fff'};color:${u.status===s?FLEET_STATUSES[s].color:'var(--muted)'};cursor:pointer" onclick="adminSetFleetStatus(${u.id},'${s}')">${FLEET_STATUSES[s].label}</button>`).join('')}
-          <button style="font-family:'Inter',sans-serif;font-size:10px;font-weight:600;padding:4px 9px;border-radius:6px;border:1px solid #FCA5A5;background:#fff;color:#DC2626;cursor:pointer" onclick="adminDeleteFleetUnit(${u.id})">Excluir</button>
+          ${Object.keys(FLEET_STATUSES).map(key=>`<button style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;padding:5px 9px;border-radius:6px;border:1px solid var(--border);background:${unit.status===key?FLEET_STATUSES[key].bg:'#fff'};color:${unit.status===key?FLEET_STATUSES[key].color:'var(--muted)'};cursor:pointer" onclick="adminSetFleetStatus(${unit.id},'${key}')">${FLEET_STATUSES[key].label}</button>`).join('')}
+          <button style="font-family:'Inter',sans-serif;font-size:10px;font-weight:700;padding:5px 9px;border-radius:6px;border:1px solid #FCA5A5;background:#fff;color:#DC2626;cursor:pointer" onclick="adminDeleteFleetUnit(${unit.id})">Excluir</button>
         </div>
       </div>
-      ${u.note?`<div style="font-size:11px;color:var(--muted);padding-left:2px">📝 ${esc(u.note)}</div>`:''}
+      ${unit.note?`<div style="font-size:11px;color:var(--muted);padding-left:2px">📝 ${esc(unit.note)}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -3161,6 +3554,7 @@ function openAdminApplication() {
   adminSessionGranted = true;
   resetRuntimeState();
   compareWeekStart = getMondayOf(new Date());
+  adminOverviewWeekStart = getMondayOf(new Date());
   showScreen('adminScreen');
   switchAdminTab('adTabAvail');
 }
