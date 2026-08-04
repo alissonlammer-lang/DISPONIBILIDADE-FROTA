@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Build de seguranca: Supabase JS fixado em 2.110.8; cabecalhos em vercel.json -->
+<!-- Build: Mercado Envios | semana operacional domingo a sabado | Supabase JS 2.110.8 -->
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -917,8 +917,8 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
       <div class="week-overview-card">
         <div class="week-overview-head">
           <div class="week-overview-title">
-            <h2>Consolidado semanal de todas as transportadoras</h2>
-            <p>Os números abaixo somam a última versão salva de cada MLP para a semana selecionada.</p>
+            <h2 id="adminWeekOverviewTitle">Consolidado semanal de todas as transportadoras</h2>
+            <p id="adminWeekOverviewSubtitle">Os números abaixo somam a última versão salva de cada MLP para a semana selecionada.</p>
           </div>
           <div class="mf">
             <label>Semana de referência</label>
@@ -927,6 +927,12 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
               <div class="week-label" id="adminWeekOverviewLabel">—</div>
               <button class="week-nav-btn" onclick="shiftAdminOverviewWeek(1)" title="Próxima semana"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
             </div>
+          </div>
+          <div class="mf">
+            <label>Filtrar transportadora (MLP)</label>
+            <select id="adminWeekCarrierFilter" onchange="renderAdminWeek()">
+              <option value="all">Todas as transportadoras</option>
+            </select>
           </div>
           <div class="mf">
             <label>Filtrar modelo</label>
@@ -963,9 +969,9 @@ body{background:var(--meli-bg);color:var(--meli-ink)}
         <div><h2>Histórico de envios semanais</h2><p>Abra um registro para conferir o detalhamento por transportadora, modelo e ciclo.</p></div>
       </div>
       <div class="admin-controls">
-        <input type="text" id="searchWeekInput" placeholder="🔍  Buscar por nome..." oninput="renderAdminWeek()">
+        <input type="text" id="searchWeekInput" placeholder="🔍  Buscar por nome ou MLP..." oninput="renderAdminWeek()">
         <input type="number" id="filterWeekNumber" placeholder="Nº da semana (ex: 30)" min="1" max="53" oninput="renderAdminWeek()" style="min-width:170px">
-        <button class="btn btn-g" style="font-size:12px;padding:7px 12px" onclick="document.getElementById('filterWeekNumber').value='';renderAdminWeek()">Limpar semana</button>
+        <button class="btn btn-g" style="font-size:12px;padding:7px 12px" onclick="document.getElementById('filterWeekNumber').value='';document.getElementById('searchWeekInput').value='';document.getElementById('adminWeekCarrierFilter').value='all';renderAdminWeek()">Limpar filtros</button>
         <button class="btn btn-s" style="font-size:12px;padding:7px 12px" onclick="exportAllWeekCSV()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar CSV</button>
         <span class="rcount" id="weekCount"></span>
       </div>
@@ -1397,8 +1403,8 @@ function enterApp(name,carrier){
   document.getElementById('userCarrierLabel').textContent=carrier||'';
   const now=new Date();
   document.getElementById('headerDate').textContent=now.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-  currentWeekStart=getMondayOf(now);
-  userCompareWeekStart=getMondayOf(now);
+  currentWeekStart=getSundayOf(now);
+  userCompareWeekStart=getSundayOf(now);
   activeCarrierFilter='all';
   initStates(); buildUI(); updateSummary();
   populateIncomingVehicleSelect(); renderIncomingList();
@@ -1501,12 +1507,14 @@ function closeAdminChangePwdModal(){
 }
 
 // ===================== WEEK HELPERS =====================
-function getMondayOf(date){
-  const d=new Date(date); const day=d.getDay(); const diff=day===0?-6:1-day;
-  d.setDate(d.getDate()+diff); return localISODate(d);
+function getSundayOf(date){
+  const d=new Date(date);
+  d.setHours(12,0,0,0);
+  d.setDate(d.getDate()-d.getDay());
+  return localISODate(d);
 }
-function getWeekDays(mondayIso){
-  const days=[]; const base=new Date(mondayIso+'T12:00:00');
+function getWeekDays(sundayIso){
+  const days=[]; const base=new Date(sundayIso+'T12:00:00');
   for(let i=0;i<7;i++){const d=new Date(base);d.setDate(d.getDate()+i);days.push(localISODate(d));}
   return days;
 }
@@ -1517,11 +1525,14 @@ function formatDay(iso){
 function isToday(iso){return iso===localISODate()}
 function getISOWeek(dateStr){
   const d=new Date(dateStr+'T12:00:00');
+  // A semana operacional começa no domingo, mas mantém a numeração ISO
+  // da segunda-feira pertencente ao mesmo período domingo-sábado.
+  if(d.getDay()===0)d.setDate(d.getDate()+1);
   d.setDate(d.getDate()+4-(d.getDay()||7));
   const yearStart=new Date(d.getFullYear(),0,1);
   return Math.ceil((((d-yearStart)/86400000)+1)/7);
 }
-function shiftWeek(dir){const d=new Date(currentWeekStart+'T12:00:00');d.setDate(d.getDate()+dir*7);currentWeekStart=getMondayOf(d);renderWeekUI()}
+function shiftWeek(dir){const d=new Date(currentWeekStart+'T12:00:00');d.setDate(d.getDate()+dir*7);currentWeekStart=getSundayOf(d);renderWeekUI()}
 
 function updateWeekLabel(){
   const days=getWeekDays(currentWeekStart);
@@ -2309,18 +2320,24 @@ function exportAllWeekCSV(){
   const recs=loadRecords('frota_week');
   if(!recs.length){showToast('⚠ Nenhuma semana');return}
   const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
-  const rows=[['Nome','Semana','Enviado em','Transportadora','Modelo','Ciclo','Seg','Ter','Qua','Qui','Sex','Sáb','Dom','Total']];
+  const carrierFilter=selectedAdminWeekCarrier();
+  const exportCarriers=carrierFilter==='all'?CARRIERS:[carrierFilter];
+  const rows=[['Nome','Semana','Enviado em','Transportadora','Modelo','Ciclo','Dom','Seg','Ter','Qua','Qui','Sex','Sáb','Total']];
   recs.forEach(rec=>{
     const days=getWeekDays(rec.weekStart);
-    CARRIERS.forEach(c=>VEHICLES.forEach(v=>cycles.forEach(cy=>{
-      const vals=days.map(d=>rec.data[c]&&rec.data[c][v]&&rec.data[c][v][d]?rec.data[c][v][d][cy]||0:0);
-      const rt=vals.reduce((a,b)=>a+b,0);
-      if(rt>0)rows.push([rec.name,rec.weekStart,rec.submittedAt,c,v,cy,...vals,rt]);
-    })));
+    exportCarriers.forEach(c=>{
+      const models=Array.from(new Set([...VEHICLES,...Object.keys(rec.data?.[c]||{})]));
+      models.forEach(v=>cycles.forEach(cy=>{
+        const vals=days.map(d=>rec.data?.[c]?.[v]?.[d]?.[cy]||0);
+        const rt=vals.reduce((a,b)=>a+b,0);
+        if(rt>0)rows.push([rec.name,rec.weekStart,rec.submittedAt,c,v,cy,...vals,rt]);
+      }));
+    });
   });
-  if(rows.length===1){showToast('⚠ Nenhum dado para o ciclo selecionado');return}
-  const suffix=activeAdminCycleFilter==='all'?'todos':activeAdminCycleFilter.toLowerCase();
-  dlCSV(rows,`semana_${suffix}`);showToast('✓ CSV exportado!');
+  if(rows.length===1){showToast('⚠ Nenhum dado para os filtros selecionados');return}
+  const cycleSuffix=activeAdminCycleFilter==='all'?'todos':activeAdminCycleFilter.toLowerCase();
+  const carrierSuffix=carrierFilter==='all'?'todas_mlps':carrierFilter.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+  dlCSV(rows,`semana_${cycleSuffix}_${carrierSuffix}`);showToast('✓ CSV exportado!');
 }
 
 function exportAllCSV(){exportAllAvailCSV();exportAllWeekCSV();}
@@ -2329,10 +2346,10 @@ function exportAllCSV(){exportAllAvailCSV();exportAllWeekCSV();}
 let adminOverviewWeekStart=null;
 
 function shiftAdminOverviewWeek(direction){
-  if(!adminOverviewWeekStart)adminOverviewWeekStart=getMondayOf(new Date());
+  if(!adminOverviewWeekStart)adminOverviewWeekStart=getSundayOf(new Date());
   const date=new Date(adminOverviewWeekStart+'T12:00:00');
   date.setDate(date.getDate()+direction*7);
-  adminOverviewWeekStart=getMondayOf(date);
+  adminOverviewWeekStart=getSundayOf(date);
   renderAdminWeekOverview();
 }
 
@@ -2346,6 +2363,23 @@ function latestWeekDataByCarrier(weekStart){
     });
   });
   return latest;
+}
+
+function populateAdminWeekCarrierFilter(){
+  const select=document.getElementById('adminWeekCarrierFilter');
+  if(!select)return 'all';
+  const previous=select.value||'all';
+  const signature=CARRIERS.join('|||');
+  if(select.dataset.signature!==signature){
+    select.innerHTML='<option value="all">Todas as transportadoras</option>'+CARRIERS.map(carrier=>`<option value="${escAttr(carrier)}">${esc(carrier)}</option>`).join('');
+    select.dataset.signature=signature;
+  }
+  select.value=previous==='all'||CARRIERS.includes(previous)?previous:'all';
+  return select.value;
+}
+
+function selectedAdminWeekCarrier(){
+  return populateAdminWeekCarrierFilter()||'all';
 }
 
 function normalizeCoverageTerm(value){
@@ -2371,21 +2405,23 @@ function adminCarrierModelTotal({carrier,latest,days,cycles,modelTerm}){
   );
 }
 
-function renderAdminCarrierCoverage({latest,days,cycles}){
+function renderAdminCarrierCoverage({latest,days,cycles,carrierFilter='all'}){
   const target=document.getElementById('adminWeekCarrierCoverage');
   if(!target)return;
   const input=document.getElementById('adminWeekCoverageModel');
   const rawTerm=String(input?.value||'').trim();
   const modelTerm=normalizeCoverageTerm(rawTerm);
+  const filteredCarriers=carrierFilter==='all'?CARRIERS:CARRIERS.filter(carrier=>carrier===carrierFilter);
   if(!modelTerm){
-    target.innerHTML=`<div class="carrier-coverage"><div class="carrier-coverage-head"><div><h3>Cobertura por transportadora</h3><p>Digite um modelo acima, como VUC ou Van, para separar quem lançou e quem não lançou.</p></div></div></div>`;
+    const scope=carrierFilter==='all'?'por transportadora':`da MLP ${carrierFilter}`;
+    target.innerHTML=`<div class="carrier-coverage"><div class="carrier-coverage-head"><div><h3>Cobertura ${esc(scope)}</h3><p>Digite um modelo acima, como VUC ou Van, para separar quem lançou e quem não lançou.</p></div></div></div>`;
     return;
   }
 
   const withModel=[];
   const withoutModel=[];
   const withoutSubmission=[];
-  CARRIERS.forEach(carrier=>{
+  filteredCarriers.forEach(carrier=>{
     if(!latest[carrier]){
       withoutSubmission.push(carrier);
       return;
@@ -2400,6 +2436,7 @@ function renderAdminCarrierCoverage({latest,days,cycles}){
 
   const displayTerm=rawTerm.toUpperCase();
   const cycleText=activeAdminCycleFilter==='all'?'todos os ciclos':activeAdminCycleFilter;
+  const singular=carrierFilter!=='all';
   const chips=(items,type,withTotal=false)=>items.length
     ? items.map(item=>{
         const carrier=withTotal?item.carrier:item;
@@ -2412,17 +2449,17 @@ function renderAdminCarrierCoverage({latest,days,cycles}){
     <div class="carrier-coverage">
       <div class="carrier-coverage-head">
         <div>
-          <h3>Cobertura de ${esc(displayTerm)} por transportadora</h3>
+          <h3>${singular?`Situação de ${esc(displayTerm)} — ${esc(carrierFilter)}`:`Cobertura de ${esc(displayTerm)} por transportadora`}</h3>
           <p>Considera a semana selecionada e ${esc(cycleText)}. O número ao lado da MLP é o total lançado na semana.</p>
         </div>
       </div>
       <div class="carrier-coverage-grid">
         <div class="carrier-coverage-group yes">
-          <div class="carrier-coverage-title"><span>Colocaram ${esc(displayTerm)}</span><span class="carrier-coverage-count">${withModel.length}</span></div>
+          <div class="carrier-coverage-title"><span>${singular?'Colocou':'Colocaram'} ${esc(displayTerm)}</span><span class="carrier-coverage-count">${withModel.length}</span></div>
           <div class="carrier-coverage-list">${chips(withModel,'yes',true)}</div>
         </div>
         <div class="carrier-coverage-group no">
-          <div class="carrier-coverage-title"><span>Não colocaram ${esc(displayTerm)}</span><span class="carrier-coverage-count">${withoutModel.length}</span></div>
+          <div class="carrier-coverage-title"><span>${singular?'Não colocou':'Não colocaram'} ${esc(displayTerm)}</span><span class="carrier-coverage-count">${withoutModel.length}</span></div>
           <div class="carrier-coverage-list">${chips(withoutModel,'no')}</div>
         </div>
         <div class="carrier-coverage-group missing">
@@ -2439,20 +2476,24 @@ function renderAdminWeekOverview(){
   const foot=document.getElementById('adminWeekOverviewFoot');
   const kpis=document.getElementById('adminWeekOverviewKpis');
   const label=document.getElementById('adminWeekOverviewLabel');
+  const title=document.getElementById('adminWeekOverviewTitle');
+  const subtitle=document.getElementById('adminWeekOverviewSubtitle');
   if(!head||!body||!foot||!kpis||!label)return;
-  if(!adminOverviewWeekStart)adminOverviewWeekStart=getMondayOf(new Date());
+  if(!adminOverviewWeekStart)adminOverviewWeekStart=getSundayOf(new Date());
+  const selectedCarrier=selectedAdminWeekCarrier();
   const days=getWeekDays(adminOverviewWeekStart);
   const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
   const latest=latestWeekDataByCarrier(adminOverviewWeekStart);
-  renderAdminCarrierCoverage({latest,days,cycles});
-  const carriers=Object.keys(latest);
+  const submittedCarriers=Object.keys(latest);
+  const carriers=selectedCarrier==='all'?submittedCarriers:(latest[selectedCarrier]?[selectedCarrier]:[]);
+  renderAdminCarrierCoverage({latest,days,cycles,carrierFilter:selectedCarrier});
   const models=Array.from(new Set([
     ...VEHICLES,
-    ...carriers.flatMap(carrier=>Object.keys(latest[carrier].data||{}))
+    ...carriers.flatMap(carrier=>Object.keys(latest[carrier]?.data||{}))
   ]));
   const query=document.getElementById('adminWeekModelSearch')?.value||'';
   const getValue=(model,day)=>carriers.reduce((sum,carrier)=>{
-    const dayData=latest[carrier].data?.[model]?.[day]||{};
+    const dayData=latest[carrier]?.data?.[model]?.[day]||{};
     return sum+cycles.reduce((cycleSum,cycle)=>cycleSum+(Number(dayData[cycle])||0),0);
   },0);
   const overview=buildModelDayOverview({days,models,query,getValue});
@@ -2461,19 +2502,32 @@ function renderAdminWeekOverview(){
   const vucTotal=completeOverview.rows.filter(row=>/\bvuc\b/i.test(row.model)).reduce((sum,row)=>sum+row.total,0);
   const vanTotal=completeOverview.rows.filter(row=>/\bvan\b/i.test(row.model)).reduce((sum,row)=>sum+row.total,0);
   label.textContent=`Semana ${getISOWeek(adminOverviewWeekStart)} · ${formatDay(days[0]).short} — ${formatDay(days[6]).short}`;
-  kpis.innerHTML=`
-    <div class="overview-kpi"><span>Total consolidado</span><strong>${overview.grand}</strong></div>
-    <div class="overview-kpi"><span>Transportadoras com envio</span><strong>${carriers.length}</strong></div>
-    <div class="overview-kpi"><span>VUCs na semana</span><strong>${vucTotal}</strong></div>
-    <div class="overview-kpi"><span>Vans na semana</span><strong>${vanTotal}</strong></div>`;
+  if(title)title.textContent=selectedCarrier==='all'?'Consolidado semanal de todas as transportadoras':`Visão semanal — ${selectedCarrier}`;
+  if(subtitle)subtitle.textContent=selectedCarrier==='all'
+    ?'Os números abaixo somam a última versão salva de cada MLP para a semana selecionada.'
+    :(latest[selectedCarrier]
+      ?'Os números abaixo mostram a última versão salva desta MLP para a semana selecionada.'
+      :'Esta MLP ainda não enviou informações para a semana selecionada.');
+  kpis.innerHTML=selectedCarrier==='all'
+    ?`<div class="overview-kpi"><span>Total consolidado</span><strong>${overview.grand}</strong></div>
+      <div class="overview-kpi"><span>Transportadoras com envio</span><strong>${carriers.length}</strong></div>
+      <div class="overview-kpi"><span>VUCs na semana</span><strong>${vucTotal}</strong></div>
+      <div class="overview-kpi"><span>Vans na semana</span><strong>${vanTotal}</strong></div>`
+    :`<div class="overview-kpi"><span>Total da MLP</span><strong>${overview.grand}</strong></div>
+      <div class="overview-kpi"><span>Status da semana</span><strong style="font-size:16px">${latest[selectedCarrier]?'Enviado':'Sem envio'}</strong></div>
+      <div class="overview-kpi"><span>VUCs na semana</span><strong>${vucTotal}</strong></div>
+      <div class="overview-kpi"><span>Vans na semana</span><strong>${vanTotal}</strong></div>`;
   head.innerHTML=`<tr><th>Modelo</th>${days.map(day=>`<th>${formatDay(day).short}</th>`).join('')}<th>Total</th><th>Média/dia</th></tr>`;
   if(!overview.rows.length){
-    body.innerHTML=`<tr><td colspan="10" style="padding:26px;text-align:center;color:var(--muted);font-family:'Inter',sans-serif">Nenhuma transportadora salvou dados para esta semana e filtro.</td></tr>`;
+    const emptyText=selectedCarrier==='all'
+      ?'Nenhuma transportadora salvou dados para esta semana e filtro.'
+      :`${selectedCarrier} não possui dados para esta semana e filtro.`;
+    body.innerHTML=`<tr><td colspan="10" style="padding:26px;text-align:center;color:var(--muted);font-family:'Inter',sans-serif">${esc(emptyText)}</td></tr>`;
   }else{
     body.innerHTML=overview.rows.map(row=>`<tr><td class="model-name">${esc(row.model)}</td>${row.values.map(value=>`<td class="${value>0?'cell-positive':''}">${value}</td>`).join('')}<td class="cell-positive">${row.total}</td><td>${(row.total/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`).join('');
   }
   foot.innerHTML=`<tr><td>Total do dia</td>${overview.dayTotals.map(value=>`<td>${value}</td>`).join('')}<td>${overview.grand}</td><td>${(overview.grand/7).toLocaleString('pt-BR',{maximumFractionDigits:1})}</td></tr>`;
-  if(peak.value){
+  if(peak.value&&kpis.children[0]){
     kpis.children[0].title=`Maior dia: ${peak.label} (${peak.value})`;
   }
 }
@@ -2481,31 +2535,55 @@ function renderAdminWeekOverview(){
 function renderAdminWeek(){
   renderAdminWeekOverview();
   const recs=loadRecords('frota_week');
-  const s=(document.getElementById('searchWeekInput').value||'').toLowerCase();
+  const search=(document.getElementById('searchWeekInput').value||'').toLowerCase();
   const weekFilter=document.getElementById('filterWeekNumber').value;
+  const carrierFilter=selectedAdminWeekCarrier();
   const cycles=activeAdminCycleFilter==='all'?CYCLES:[activeAdminCycleFilter];
   const cycleLabel=activeAdminCycleFilter==='all'?'Todos os ciclos':activeAdminCycleFilter;
-  const hasCycleData=rec=>Object.values(rec.data||{}).some(carrierData=>
-    Object.values(carrierData||{}).some(vehicleData=>
+  const recordCarriers=rec=>carrierFilter==='all'?Object.keys(rec.data||{}):[carrierFilter].filter(carrier=>rec.data?.[carrier]);
+  const hasCycleData=rec=>recordCarriers(rec).some(carrier=>
+    Object.values(rec.data?.[carrier]||{}).some(vehicleData=>
       Object.values(vehicleData||{}).some(dayData=>
         cycles.some(cycle=>(Number(dayData?.[cycle])||0)>0)
       )
     )
   );
-  const f=recs.filter(r=>(r.name||'').toLowerCase().includes(s)&&(!weekFilter||getISOWeek(r.weekStart)===parseInt(weekFilter))&&hasCycleData(r));
+  const matchesSearch=rec=>!search||
+    (rec.name||'').toLowerCase().includes(search)||
+    Object.keys(rec.data||{}).some(carrier=>carrier.toLowerCase().includes(search));
+  const filtered=recs.filter(rec=>
+    matchesSearch(rec)&&
+    (!weekFilter||getISOWeek(rec.weekStart)===parseInt(weekFilter))&&
+    (carrierFilter==='all'||Boolean(rec.data?.[carrierFilter]))&&
+    hasCycleData(rec)
+  );
 
-  document.getElementById('weekCount').textContent=`${f.length} semana${f.length!==1?'s':''} · ${cycleLabel}`;
+  const mlpText=carrierFilter==='all'?'Todas as MLPs':carrierFilter;
+  document.getElementById('weekCount').textContent=`${filtered.length} semana${filtered.length!==1?'s':''} · ${cycleLabel} · ${mlpText}`;
   const list=document.getElementById('weekList');
   list.innerHTML='';
-  if(!f.length){
-    list.innerHTML=`<div class="empty-state">${recs.length===0?'Nenhuma semana salva ainda.':'Sem resultados para o ciclo selecionado.'}</div>`;
+  if(!filtered.length){
+    const message=recs.length===0
+      ?'Nenhuma semana salva ainda.'
+      :`Sem resultados para ${mlpText}, ${cycleLabel} e os demais filtros.`;
+    list.innerHTML=`<div class="empty-state">${esc(message)}</div>`;
     return;
   }
 
-  f.forEach((rec,ri)=>{
+  filtered.forEach((rec,ri)=>{
     const days=getWeekDays(rec.weekStart);
     const wn=getISOWeek(rec.weekStart);
-    const tot=CARRIERS.reduce((sum,carrier)=>sum+VEHICLES.reduce((vehicleSum,vehicle)=>vehicleSum+days.reduce((daySum,day)=>daySum+cycles.reduce((cycleSum,cycle)=>cycleSum+(rec.data[carrier]&&rec.data[carrier][vehicle]&&rec.data[carrier][vehicle][day]?rec.data[carrier][vehicle][day][cycle]||0:0),0),0),0),0);
+    const carriersInRecord=recordCarriers(rec);
+    const total=carriersInRecord.reduce((sum,carrier)=>{
+      const models=Object.keys(rec.data?.[carrier]||{});
+      return sum+models.reduce((modelSum,vehicle)=>
+        modelSum+days.reduce((daySum,day)=>
+          daySum+cycles.reduce((cycleSum,cycle)=>
+            cycleSum+(Number(rec.data?.[carrier]?.[vehicle]?.[day]?.[cycle])||0),0
+          ),0
+        ),0
+      );
+    },0);
     const at=new Date(rec.submittedAt).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     const s2=new Date(days[0]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
     const e2=new Date(days[6]+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
@@ -2513,33 +2591,38 @@ function renderAdminWeek(){
     card.className='rec-card';
     const hdr=document.createElement('div');
     hdr.className='rec-hdr';
-    hdr.innerHTML=`<div class="rec-av" style="background:#16A34A">${esc(ini(rec.name))}</div><div class="rec-info"><div class="rec-name">${esc(rec.name)}</div><div class="rec-meta">${at}</div></div><div class="rec-badges"><span class="bdg" style="background:var(--accent-l);color:var(--accent)">Semana ${wn}</span><span class="bdg bdg-gy">${s2} – ${e2}</span><span class="bdg" style="background:${activeAdminCycleFilter==='all'?'var(--bg)':activeAdminCycleFilter==='AM1'?'var(--am1-l)':activeAdminCycleFilter==='CHP'?'var(--chp-l)':'var(--pm1-l)'};color:${activeAdminCycleFilter==='all'?'var(--muted)':activeAdminCycleFilter==='AM1'?'var(--am1)':activeAdminCycleFilter==='CHP'?'var(--chp)':'var(--pm1)'}">${cycleLabel}</span><span class="bdg bdg-gr">${tot} veíc.</span><button class="delbtn" onclick="delWeek(${rec.id},event)">Excluir</button></div><button class="rtoggle open" id="wrt-${ri}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
-    hdr.addEventListener('click',e=>{
-      if(e.target.closest('.delbtn'))return;
+    const selectedBadge=carrierFilter==='all'?'':`<span class="bdg bdg-bl">${esc(carrierFilter)}</span>`;
+    hdr.innerHTML=`<div class="rec-av" style="background:#16A34A">${esc(ini(rec.name))}</div><div class="rec-info"><div class="rec-name">${esc(rec.name)}</div><div class="rec-meta">${at}</div></div><div class="rec-badges"><span class="bdg" style="background:var(--accent-l);color:var(--accent)">Semana ${wn}</span><span class="bdg bdg-gy">${s2} – ${e2}</span>${selectedBadge}<span class="bdg" style="background:${activeAdminCycleFilter==='all'?'var(--bg)':activeAdminCycleFilter==='AM1'?'var(--am1-l)':activeAdminCycleFilter==='CHP'?'var(--chp-l)':'var(--pm1-l)'};color:${activeAdminCycleFilter==='all'?'var(--muted)':activeAdminCycleFilter==='AM1'?'var(--am1)':activeAdminCycleFilter==='CHP'?'var(--chp)':'var(--pm1)'}">${cycleLabel}</span><span class="bdg bdg-gr">${total} veíc.</span><button class="delbtn" onclick="delWeek(${rec.id},event)">Excluir</button></div><button class="rtoggle open" id="wrt-${ri}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg></button>`;
+    hdr.addEventListener('click',event=>{
+      if(event.target.closest('.delbtn'))return;
       const body=document.getElementById(`wrb-${ri}`);
       const toggle=document.getElementById(`wrt-${ri}`);
       body.style.display=body.style.display==='none'?'':'none';
       toggle.classList.toggle('open');
     });
 
-    const body=document.createElement('div');
-    body.className='rec-body';
-    body.id=`wrb-${ri}`;
-    let table=`<div style="overflow-x:auto"><table class="rec-tbl" style="min-width:600px"><thead><tr><th>Transportadora</th><th>Modelo</th><th>Ciclo</th>${days.map(d=>`<th style="text-align:center">${formatDay(d).short}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead><tbody>`;
+    const detail=document.createElement('div');
+    detail.className='rec-body';
+    detail.id=`wrb-${ri}`;
+    let table=`<div style="overflow-x:auto"><table class="rec-tbl" style="min-width:600px"><thead><tr><th>Transportadora</th><th>Modelo</th><th>Ciclo</th>${days.map(day=>`<th style="text-align:center">${formatDay(day).short}</th>`).join('')}<th style="text-align:right">Total</th></tr></thead><tbody>`;
     let rows='';
-    Object.keys(rec.data||{}).forEach(carrier=>visibleVehiclesFor(carrier).forEach(vehicle=>cycles.forEach(cycle=>{
-      const values=days.map(day=>rec.data[carrier]&&rec.data[carrier][vehicle]&&rec.data[carrier][vehicle][day]?rec.data[carrier][vehicle][day][cycle]||0:0);
-      const rowTotal=values.reduce((a,b)=>a+b,0);
-      if(rowTotal===0)return;
-      rows+=`<tr><td style="font-size:11px;color:var(--muted)">${esc(carrier)}</td><td>${esc(vehicle)}</td><td style="font-size:11px;font-weight:600;color:var(--${cycle==='AM1'?'am1':cycle==='CHP'?'chp':'pm1'})">${cycle}</td>${values.map(q=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-weight:${q>0?700:400};color:${q>0?'var(--accent)':'var(--muted)'}">${q}</td>`).join('')}<td class="tn">${rowTotal}</td></tr>`;
-    })));
-    table+=rows||`<tr><td colspan="${3+days.length+1}" style="text-align:center;color:var(--muted);padding:16px">Sem dados preenchidos para ${cycleLabel}</td></tr>`;
+    carriersInRecord.forEach(carrier=>{
+      const models=Array.from(new Set([...VEHICLES,...Object.keys(rec.data?.[carrier]||{})]));
+      models.forEach(vehicle=>cycles.forEach(cycle=>{
+        const values=days.map(day=>rec.data?.[carrier]?.[vehicle]?.[day]?.[cycle]||0);
+        const rowTotal=values.reduce((a,b)=>a+b,0);
+        if(rowTotal===0)return;
+        rows+=`<tr><td style="font-size:11px;color:var(--muted)">${esc(carrier)}</td><td>${esc(vehicle)}</td><td style="font-size:11px;font-weight:600;color:var(--${cycle==='AM1'?'am1':cycle==='CHP'?'chp':'pm1'})">${cycle}</td>${values.map(quantity=>`<td style="text-align:center;font-family:'DM Mono',monospace;font-weight:${quantity>0?700:400};color:${quantity>0?'var(--accent)':'var(--muted)'}">${quantity}</td>`).join('')}<td class="tn">${rowTotal}</td></tr>`;
+      }));
+    });
+    table+=rows||`<tr><td colspan="${3+days.length+1}" style="text-align:center;color:var(--muted);padding:16px">Sem dados preenchidos para ${esc(cycleLabel)} e ${esc(mlpText)}</td></tr>`;
     table+='</tbody></table></div>';
-    body.innerHTML=table;
-    card.append(hdr,body);
+    detail.innerHTML=table;
+    card.append(hdr,detail);
     list.appendChild(card);
   });
 }
+
 function delWeek(id,e){e.stopPropagation();askConfirm('Excluir?',()=>{const r=loadRecords('frota_week');saveRecords('frota_week',r.filter(x=>x.id!==id));renderAdminWeek();showToast('✓ Excluído')})}
 
 let legacyUsersActionMap=new Map();
@@ -2778,14 +2861,14 @@ function renderFixedMappingList(){
 // ===================== SEMANA x SEMANA =====================
 let compareWeekStart=null;
 function shiftCompareWeek(dir){
-  if(!compareWeekStart) compareWeekStart=getMondayOf(new Date());
+  if(!compareWeekStart) compareWeekStart=getSundayOf(new Date());
   const d=new Date(compareWeekStart+'T12:00:00');d.setDate(d.getDate()+dir*7);
-  compareWeekStart=getMondayOf(d);
+  compareWeekStart=getSundayOf(d);
   renderCompareWeek();
 }
 function prevWeekOf(weekStartIso){
   const d=new Date(weekStartIso+'T12:00:00');d.setDate(d.getDate()-7);
-  return getMondayOf(d);
+  return getSundayOf(d);
 }
 function getWeekAggregates(weekStartIso){
   const recs=loadRecords('frota_week').filter(r=>r.weekStart===weekStartIso);
@@ -2817,7 +2900,7 @@ function gapRow(label,curT,prevT){
   return `<tr><td class="sc">${esc(label)}</td><td style="text-align:right;font-family:'DM Mono',monospace">${curT}</td><td style="text-align:right;font-family:'DM Mono',monospace;color:var(--muted)">${prevT}</td><td style="text-align:right;font-family:'DM Mono',monospace;font-weight:700;color:${gapColor}">${gap>0?'+':''}${gap}</td></tr>`;
 }
 function renderCompareWeek(){
-  if(!compareWeekStart) compareWeekStart=getMondayOf(new Date());
+  if(!compareWeekStart) compareWeekStart=getSundayOf(new Date());
   const days=getWeekDays(compareWeekStart);
   document.getElementById('compareWeekLabel').textContent=`Semana ${getISOWeek(compareWeekStart)} · ${formatDay(days[0]).short} — ${formatDay(days[6]).short}`;
   const prevWeek=prevWeekOf(compareWeekStart);
@@ -3595,15 +3678,15 @@ async function loadAppData() {
     const c = DB_CATALOG.carrierNameById.get(r.carrier_id);
     const v = DB_CATALOG.vehicleNameById.get(r.vehicle_id);
     if (!c || !v) return;
-    const monday = getMondayOf(new Date(`${r.operation_date}T12:00:00`));
-    const key = `${r.carrier_id}|${monday}`;
+    const weekStart = getSundayOf(new Date(`${r.operation_date}T12:00:00`));
+    const key = `${r.carrier_id}|${weekStart}`;
     if (!weekGroups.has(key)) {
       const rid = runtimeId('week', key);
-      WEEK_IDENTITY.set(rid, { carrierId: r.carrier_id, weekStart: monday });
+      WEEK_IDENTITY.set(rid, { carrierId: r.carrier_id, weekStart });
       weekGroups.set(key, {
         id: rid,
         name: DB_CATALOG.profileNameById.get(r.updated_by) || c,
-        weekStart: monday,
+        weekStart,
         cycle: 'all',
         submittedAt: r.updated_at,
         data: { [c]: {} }
@@ -3649,8 +3732,8 @@ function openUserApplication() {
   document.getElementById('headerDate').textContent = now.toLocaleDateString('pt-BR', {
     weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
   });
-  currentWeekStart = getMondayOf(now);
-  userCompareWeekStart = getMondayOf(now);
+  currentWeekStart = getSundayOf(now);
+  userCompareWeekStart = getSundayOf(now);
   activeCarrierFilter = 'all';
   initStates();
   buildUI();
@@ -3667,8 +3750,8 @@ function openAdminApplication() {
   // Libera o guard legado do painel antes de trocar de tela.
   adminSessionGranted = true;
   resetRuntimeState();
-  compareWeekStart = getMondayOf(new Date());
-  adminOverviewWeekStart = getMondayOf(new Date());
+  compareWeekStart = getSundayOf(new Date());
+  adminOverviewWeekStart = getSundayOf(new Date());
   showScreen('adminScreen');
   switchAdminTab('adTabAvail');
 }
@@ -4683,10 +4766,10 @@ importJSON = async function(data) {
 let userCompareWeekStart = null;
 
 function shiftUserCompareWeek(direction) {
-  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  if (!userCompareWeekStart) userCompareWeekStart = getSundayOf(new Date());
   const date = new Date(`${userCompareWeekStart}T12:00:00`);
   date.setDate(date.getDate() + direction * 7);
-  userCompareWeekStart = getMondayOf(date);
+  userCompareWeekStart = getSundayOf(date);
   renderUserCompare();
 }
 
@@ -4730,7 +4813,7 @@ function compareRow(label, current, previous) {
 
 function renderUserCompare() {
   if (!currentUser?.carrier) return;
-  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  if (!userCompareWeekStart) userCompareWeekStart = getSundayOf(new Date());
   const previousWeekStart = prevWeekOf(userCompareWeekStart);
   const current = carrierWeekSnapshot(currentUser.carrier, userCompareWeekStart);
   const previous = carrierWeekSnapshot(currentUser.carrier, previousWeekStart);
@@ -4760,7 +4843,7 @@ function renderUserCompare() {
 
 function exportUserCompareCSV() {
   if (!currentUser?.carrier) return;
-  if (!userCompareWeekStart) userCompareWeekStart = getMondayOf(new Date());
+  if (!userCompareWeekStart) userCompareWeekStart = getSundayOf(new Date());
   const previousWeekStart = prevWeekOf(userCompareWeekStart);
   const current = carrierWeekSnapshot(currentUser.carrier, userCompareWeekStart);
   const previous = carrierWeekSnapshot(currentUser.carrier, previousWeekStart);
